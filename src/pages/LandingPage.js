@@ -1,11 +1,15 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
+import Image1 from '../assets/images/f1.jpg';
+import Image2 from '../assets/images/f2.jpg';
+import Image3 from '../assets/images/f3.jpg';
+
 const LandingPage = () => {
   const carouselImages = [
-    '/assets/images/f1.jpg',
-    '/assets/images/f2.jpg',
-    '/assets/images/f3.jpg',
+    Image1,
+    Image2,
+    Image3,
   ];
 
   return (

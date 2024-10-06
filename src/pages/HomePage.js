@@ -1,27 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ChevronRight, Leaf, Cpu, Store, Recycle } from 'lucide-react';
-import Navbar from './Navbar';
+import { ChevronRight, Leaf, Cpu, Store, Recycle, Users, TrendingUp, Award, BarChart } from 'lucide-react';
+
+import Image1 from '../assets/images/f1.jpg';
+import Image2 from '../assets/images/f2.jpg';
+import Image3 from '../assets/images/f3.jpg';
+import Image4 from '../assets/images/7.png';
+import Image5 from '../assets/images/5.jpg';
+import Image6 from '../assets/images/6.jpg';
 
 const HomePage = () => {
   const carouselImages = [
-    '/assets/images/f1.jpg',
-    '/assets/images/f2.jpg',
-    '/assets/images/f3.jpg',
+    Image1,
+    Image2,
+    Image3,
   ];
 
   const features = [
-    { title: 'IoT Integration', description: 'Smart farming with real-time data', icon: Leaf },
-    { title: 'AI-Powered Insights', description: 'Predictive analytics for better yields', icon: Cpu },
-    { title: 'Direct Market Access', description: 'Connect farmers to consumers seamlessly', icon: Store },
-    { title: 'Sustainable Practices', description: 'Eco-friendly farming solutions', icon: Recycle },
+    { title: 'IoT Integration', description: 'Leverage smart sensors and real-time data for precise farming', icon: Leaf },
+    { title: 'AI-Powered Insights', description: 'Harness machine learning for crop prediction and optimization', icon: Cpu },
+    { title: 'Direct Market Access', description: 'Connect farmers to consumers with our innovative marketplace', icon: Store },
+    { title: 'Sustainable Practices', description: 'Promote eco-friendly farming with advanced resource management', icon: Recycle },
   ];
 
   const testimonials = [
-    { name: 'John Doe', role: 'Farmer', text: 'This platform revolutionized how I manage my farm and sell produce.', avatar: '/images/farmer-avatar.jpg' },
-    { name: 'Jane Smith', role: 'Consumer', text: 'I love having access to fresh, local produce at my fingertips.', avatar: '/images/consumer-avatar.jpg' },
-    { name: 'Mike Johnson', role: 'Agribusiness Owner', text: 'The analytics tools have greatly improved our supply chain efficiency.', avatar: '/images/business-avatar.jpg' },
+    { name: 'Adnan Umer', role: 'Organic Farmer', text: 'This platform has revolutionized how I manage my farm and connect with customers. My yield has increased by 30% in just one season!', avatar: Image4 },
+    { name: 'Ali Hajveri', role: 'Urban Consumer', text: 'I love having access to fresh, local produce at my fingertips. The transparency in the supply chain gives me confidence in what Im buying.', avatar: Image5 },
+    { name: 'Sardan Hassan', role: 'Agribusiness CEO', text: 'The analytics tools have greatly improved our supply chain efficiency. Weve reduced waste by 25% and increased farmer satisfaction.', avatar: Image6 },
+  ];
+
+  const stats = [
+    { title: 'Farmers Onboarded', value: '10,000+', icon: Users },
+    { title: 'Yield Increase', value: '35%', icon: TrendingUp },
+    { title: 'Sustainability Score', value: '92/100', icon: Award },
+    { title: 'Market Reach', value: '5M+', icon: BarChart },
   ];
 
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -34,8 +47,7 @@ const HomePage = () => {
   }, []);
 
   return (
-    <div className="flex flex-col min-h-screen bg-white">
-      <Navbar />
+    <div className="flex flex-col min-h-screen bg-gray-50">
       <main className="flex-grow">
         {/* Hero Section with Carousel */}
         <div className="relative h-[80vh]">
@@ -48,39 +60,69 @@ const HomePage = () => {
               transition={{ duration: 0.5 }}
             >
               <img src={img} alt={`Farm ${index + 1}`} className="object-cover h-full w-full" />
-              <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-                <div className="text-center text-white max-w-3xl px-4">
+              <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                <div className="text-center text-white max-w-4xl px-4">
                   <motion.h1 
-                    className="text-5xl font-bold mb-6"
+                    className="text-5xl sm:text-6xl font-bold mb-6"
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.2 }}
                   >
-                    Cultivating Connections in Agriculture
+                    Revolutionizing Agriculture Through Technology
                   </motion.h1>
                   <motion.p 
-                    className="text-xl mb-8"
+                    className="text-xl sm:text-2xl mb-8"
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.4 }}
                   >
-                    Empowering farmers, consumers, and agribusinesses with innovative technology
+                    Empowering farmers, consumers, and agribusinesses with cutting-edge solutions for a sustainable future
                   </motion.p>
-                  <motion.a
-                    href="#features"
-                    className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-3 px-6 rounded-full text-lg transition duration-300 inline-flex items-center"
+                  <motion.div
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.6 }}
                   >
-                    Explore Our Solutions
-                    <ChevronRight className="ml-2" />
-                  </motion.a>
+                    <Link to="#features" className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-3 px-8 rounded-full text-lg transition duration-300 inline-flex items-center">
+                      Explore Our Solutions
+                      <ChevronRight className="ml-2 h-5 w-5" />
+                    </Link>
+                  </motion.div>
                 </div>
               </div>
             </motion.div>
           ))}
         </div>
+
+        {/* Vision Section */}
+        <section className="py-20 bg-white">
+          <div className="container mx-auto px-4">
+            <h2 className="text-4xl font-bold text-center mb-16 text-gray-800">Our Vision</h2>
+            <div className="flex flex-col md:flex-row items-center justify-between">
+              <div className="md:w-1/2 mb-10 md:mb-0">
+                <img src={Image3} alt="Agriculture Vision" className="rounded-lg shadow-xl" />
+              </div>
+              <div className="md:w-1/2 md:pl-10">
+                <h3 className="text-3xl font-semibold mb-6 text-gray-800">Cultivating a Sustainable Future</h3>
+                <p className="text-xl text-gray-600 mb-6">We envision a world where technology bridges the gap between farm and table, fostering sustainability, transparency, and prosperity across the entire agricultural ecosystem.</p>
+                <ul className="space-y-4">
+                  <li className="flex items-center text-lg text-gray-700">
+                    <ChevronRight className="mr-2 text-green-500" />
+                    Empower farmers with data-driven insights
+                  </li>
+                  <li className="flex items-center text-lg text-gray-700">
+                    <ChevronRight className="mr-2 text-green-500" />
+                    Enhance food security through smart resource management
+                  </li>
+                  <li className="flex items-center text-lg text-gray-700">
+                    <ChevronRight className="mr-2 text-green-500" />
+                    Create transparent and efficient supply chains
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* Features Section */}
         <section id="features" className="py-20 bg-gray-50">
@@ -98,6 +140,28 @@ const HomePage = () => {
                   <feature.icon className="w-12 h-12 text-yellow-500 mb-6" />
                   <h3 className="text-2xl font-semibold mb-4 text-gray-800">{feature.title}</h3>
                   <p className="text-gray-600">{feature.description}</p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Stats Section */}
+        <section className="py-20 bg-yellow-50">
+          <div className="container mx-auto px-4">
+            <h2 className="text-4xl font-bold text-center mb-16 text-gray-800">Our Impact in Numbers</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+              {stats.map((stat, index) => (
+                <motion.div
+                  key={index}
+                  className="text-center"
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <stat.icon className="w-16 h-16 mx-auto mb-4 text-yellow-500" />
+                  <h3 className="text-4xl font-bold mb-2 text-gray-800">{stat.value}</h3>
+                  <p className="text-xl text-gray-600">{stat.title}</p>
                 </motion.div>
               ))}
             </div>
@@ -136,24 +200,13 @@ const HomePage = () => {
           <div className="container mx-auto px-4 text-center">
             <h2 className="text-4xl font-bold mb-8 text-gray-800">Ready to Transform Your Agricultural Journey?</h2>
             <p className="text-xl mb-10 max-w-2xl mx-auto text-gray-600">Join our platform today and experience the future of farming, consumer connections, and agribusiness management.</p>
-            <motion.a
-              href="/signup"
-              className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-3 px-8 rounded-full text-lg transition duration-300 inline-flex items-center"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
+            <Link to="/signup" className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold py-3 px-8 rounded-full text-lg transition duration-300 inline-flex items-center">
               Get Started Now
-              <ChevronRight className="ml-2" />
-            </motion.a>
+              <ChevronRight className="ml-2 h-5 w-5" />
+            </Link>
           </div>
         </section>
       </main>
-
-      <footer className="bg-gray-800 text-white py-10">
-        <div className="container mx-auto px-4 text-center">
-          <p>&copy; 2024 Farm E-commerce Platform. All rights reserved.</p>
-        </div>
-      </footer>
     </div>
   );
 };

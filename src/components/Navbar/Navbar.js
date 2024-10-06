@@ -1,25 +1,28 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import Image from '../../assets/images/ward.svg';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navigation = [
     { title: "Home", path: "/home" },
-    { title: "Mart", path: "/mart" },
-    { title: "Marketplace", path: "/marketplace" },
+    { title: "Mart", path: "/products" },
+    { title: "Marketplace", path: "/services" },
+    { title: "Contact", path: "/about" },
   ];
 
   return (
-    <nav className="bg-[#171313] text-white w-full">
+    <nav className="bg-yellow-400 text-black w-full shadow-md">
       <div className="items-center px-4 max-w-screen-xl mx-auto md:flex md:px-8">
-        <div className="flex items-center justify-between py-3 md:py-5 md:block">
-          <Link to="/">
-            <img src="/assets/images/wasp.png" alt="Logo" className="h-11" />
+        <div className="flex items-center justify-between py-3 md:py-4 md:block">
+          <Link to="/" className="flex items-center">
+            <img src={Image} alt="Logo" className="h-12 md:h-12" />
+            <span className="ml-2 text-xl font-bold">Wasp Warden</span>
           </Link>
           <div className="md:hidden">
             <button
-              className="text-gray-400 hover:text-gray-200"
+              className="text-black hover:text-yellow-700"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
               {isMenuOpen ? (
@@ -37,7 +40,7 @@ const Navbar = () => {
         <div className={`flex-1 pb-3 mt-8 md:block md:pb-0 md:mt-0 ${isMenuOpen ? 'block' : 'hidden'}`}>
           <ul className="justify-end items-center space-y-6 md:flex md:space-x-6 md:space-y-0">
             {navigation.map((item, idx) => (
-              <li key={idx} className="text-gray-200 hover:text-[#FF9933]">
+              <li key={idx} className="text-black hover:text-yellow-700">
                 <Link to={item.path} className="block">
                   {item.title}
                 </Link>
@@ -45,15 +48,11 @@ const Navbar = () => {
             ))}
             <div className='space-y-3 items-center gap-x-6 md:flex md:space-y-0'>
               <li>
-                <Link to="/login" className="block py-3 px-4 text-center text-white hover:text-[#FF9933] border border-[#FF9933] rounded-lg md:inline">
+                <Link to="/login" className="block py-2 px-4 text-center text-yellow-400 bg-black hover:bg-yellow-700 hover:text-white rounded-lg md:inline transition duration-300">
                   Login
                 </Link>
               </li>
-              <li>
-                <Link to="/signup" className="block py-3 px-4 font-medium text-center text-[#171313] bg-[#FF9933] hover:bg-[#FF7F00] active:bg-[#FF6600] rounded-lg shadow md:inline">
-                  Signup
-                </Link>
-              </li>
+             
             </div>
           </ul>
         </div>

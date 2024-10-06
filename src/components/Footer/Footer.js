@@ -1,6 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
+import Image from '../../assets/images/warden.png'
+
 export default () => {
   const footerNavs = [
     {
@@ -74,7 +76,7 @@ export default () => {
         <div className="flex-1">
           <div className="max-w-xs">
             <Link to="/">
-              <img src="/assets/images/warden.png" className="w-24" alt="Logo" />
+              <img src={Image} className="w-24" alt="Logo" />
             </Link>
             <p className="leading-relaxed mt-2 text-[15px]">
               Wasp Warden - Your trusted partner in pest control.
