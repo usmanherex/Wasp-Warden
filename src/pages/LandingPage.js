@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom';
 
 const LandingPage = () => {
   const carouselImages = [
-    '/carousel-image-1.jpg',
-    '/carousel-image-2.jpg',
-    '/carousel-image-3.jpg',
+    '/assets/images/f1.jpg',
+    '/assets/images/f2.jpg',
+    '/assets/images/f3.jpg',
   ];
 
   return (

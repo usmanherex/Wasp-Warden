@@ -15,7 +15,7 @@ const Navbar = () => {
       <div className="items-center px-4 max-w-screen-xl mx-auto md:flex md:px-8">
         <div className="flex items-center justify-between py-3 md:py-5 md:block">
           <Link to="/">
-            <img src="/images/wasp.png" alt="Logo" className="h-11" />
+            <img src="/assets/images/wasp.png" alt="Logo" className="h-11" />
           </Link>
           <div className="md:hidden">
             <button

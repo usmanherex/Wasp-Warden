@@ -16,7 +16,7 @@ const LoginPage = () => {
     <div className="flex justify-center items-center min-h-screen bg-gray-100 py-6 px-4 sm:px-6 lg:px-8">
       <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
         <div className="text-center pb-4">
-          <img src="/images/wasp.png" alt="Logo" width={150} className="mx-auto" />
+          <img src="/assets/images/wasp.png" alt="Logo" width={150} className="mx-auto" />
           <h3 className="text-gray-800 text-2xl font-bold sm:text-3xl mt-2">Log in to your account</h3>
         </div>
         <form onSubmit={handleLogin} className="space-y-5">
