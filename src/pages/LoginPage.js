@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Mail, Lock } from 'lucide-react';
 
 import Image from '../assets/images/wasp.png';
 
@@ -15,68 +16,92 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-100 py-6 px-4 sm:px-6 lg:px-8">
-      <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
-        <div className="text-center pb-4">
-          <img src={Image} alt="Logo" width={150} className="mx-auto" />
-          <h3 className="text-gray-800 text-2xl font-bold sm:text-3xl mt-2">Log in to your account</h3>
-        </div>
-        <form onSubmit={handleLogin} className="space-y-5">
-          <div>
-            <label htmlFor="email" className="font-medium">
-              Email
-            </label>
-            <input
-              type="email"
-              id="email"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full mt-2 px-3 py-2 text-gray-500 bg-transparent outline-none border focus:border-yellow-400 shadow-sm rounded-lg"
-            />
+    <div className="flex min-h-screen bg-gradient-to-br from-green-400 to-blue-500">
+      <div className="m-auto bg-white rounded-xl shadow-xl overflow-hidden max-w-md w-full">
+        <div className="p-8">
+          <div className="text-center mb-8">
+            <img src={Image} alt="Logo" className="mx-auto mb-4" style={{ width: '100px', height: 'auto' }} />
+            <h2 className="text-3xl font-bold text-green-800">Log in to your account</h2>
           </div>
-          <div>
-            <label htmlFor="password" className="font-medium">
-              Password
-            </label>
-            <input
-              type="password"
-              id="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full mt-2 px-3 py-2 text-gray-500 bg-transparent outline-none border focus:border-yellow-400 shadow-sm rounded-lg"
-            />
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-x-3">
-              <input type="checkbox" id="remember-me-checkbox" className="checkbox-item peer hidden" />
-              <label
-                htmlFor="remember-me-checkbox"
-                className="relative flex w-5 h-5 bg-white peer-checked:bg-yellow-400 rounded-md border ring-offset-2 ring-yellow-400 duration-150 peer-active:ring cursor-pointer after:absolute after:inset-x-0 after:top-[3px] after:m-auto after:w-1.5 after:h-2.5 after:border-r-2 after:border-b-2 after:border-white after:rotate-45"
-              />
-              <span>Remember me</span>
+          
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                Email
+              </label>
+              <div className="relative">
+                <input
+                  type="email"
+                  id="email"
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-gray-400" />
+                </div>
+              </div>
             </div>
-            <a href="javascript:void(0)" className="text-center text-yellow-600 hover:text-yellow-500">
-              Forgot password?
-            </a>
-          </div>
-          <button
-            type="submit"
-            className="w-full px-4 py-2 text-white font-medium bg-yellow-500 hover:bg-yellow-400 active:bg-yellow-600 rounded-lg duration-150"
-          >
-            Sign in
-          </button>
-        </form>
-        
-        <p className="text-center text-gray-600 mt-4">
-          Don't have an account?{' '}
-          <Link to="/signup" className="font-medium text-yellow-600 hover:text-yellow-500">
-            Sign up
-          </Link>
-        </p>
+            
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  type="password"
+                  id="password"
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-gray-400" />
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  id="remember-me"
+                  name="remember-me"
+                  type="checkbox"
+                  className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                />
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                  Remember me
+                </label>
+              </div>
+              <div className="text-sm">
+                <a href="#" className="font-medium text-green-600 hover:text-green-500">
+                  Forgot password?
+                </a>
+              </div>
+            </div>
+            
+            <div>
+              <button
+                type="submit"
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              >
+                Sign in
+              </button>
+            </div>
+          </form>
+        </div>
+        <div className="px-8 py-4 bg-gray-50 border-t border-gray-200 text-center">
+          <p className="text-sm text-gray-600">
+            Don't have an account?{' '}
+            <Link to="/signup" className="font-medium text-green-600 hover:text-green-500">
+              Sign up
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );
