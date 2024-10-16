@@ -9,7 +9,7 @@ const UserProfilePage = () => {
       <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-4">
         {/* Left Column */}
         <div className="w-full md:w-1/4">
-          <Card className="bg-green-300 p-6">
+          <Card className="bg-green-700 p-6">
             <div className="flex flex-col items-center">
               <div className="w-24 h-24 rounded-full bg-white p-1 mb-4">
                 <img
