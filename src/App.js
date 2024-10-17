@@ -11,6 +11,7 @@ import InboxPage from './pages/Inbox';
 import ContactForm from './pages/Contact';
 import FarmMarketplace from './pages/Mart';
 import AgriEquipmentMarketplace from './pages/MarketPlace';
+import { MyWarden,PlantDiseaseDetection,WheatDiseaseDetection,PestDetection } from './pages/MyWarden';
 
 const AppContent = () => {
   const location = useLocation();
@@ -31,6 +32,10 @@ const AppContent = () => {
         <Route path="/contact" element={<ContactForm/>} />
         <Route path="/mart" element={<FarmMarketplace/>} />
         <Route path="/marketplace" element={<AgriEquipmentMarketplace/>} />
+        <Route path="/my-warden" element={<MyWarden />} />
+        <Route path="/plant-disease-detection" element={<PlantDiseaseDetection />} />
+        <Route path="/pest-detection" element={<PestDetection />} />
+        <Route path="/wheat-disease-detection" element={<WheatDiseaseDetection />} />
       </Routes>
 
       {!noNavbarFooterPaths.includes(location.pathname) && <Footer />}

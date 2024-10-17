@@ -11,6 +11,7 @@ const Navbar = () => {
     { title: "Marketplace", path: "/marketplace" },
     { title: "Cart", path: "/cart" },
     { title: "Inbox", path: "/inbox" },
+    { title: "My Warden", path: "/my-warden" },
     { title: "My Profile", path: "/profile" },
     { title: "Contact", path: "/contact" },
   ];
