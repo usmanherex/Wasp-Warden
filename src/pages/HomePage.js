@@ -24,9 +24,9 @@ const HomePage = () => {
   ];
 
   const testimonials = [
-    { name: 'Adnan Umer', role: 'Organic Farmer', text: 'This platform has revolutionized how I manage my farm and connect with customers. My yield has increased by 30% in just one season!', avatar: Image4 },
-    { name: 'Ali Hajveri', role: 'Urban Consumer', text: 'I love having access to fresh, local produce at my fingertips. The transparency in the supply chain gives me confidence in what Im buying.', avatar: Image5 },
-    { name: 'Sardan Hassan', role: 'Agribusiness CEO', text: 'The analytics tools have greatly improved our supply chain efficiency. Weve reduced waste by 25% and increased farmer satisfaction.', avatar: Image6 },
+    { name: 'Umer Zia', role: 'Organic Farmer', text: 'This platform has revolutionized how I manage my farm and connect with customers. My yield has increased by 30% in just one season!', avatar: Image4 },
+    { name: 'Ali Hassan', role: 'Urban Consumer', text: 'I love having access to fresh, local produce at my fingertips. The transparency in the supply chain gives me confidence in what Im buying.', avatar: Image5 },
+    { name: 'Bilal Khan', role: 'Agribusiness CEO', text: 'The analytics tools have greatly improved our supply chain efficiency. Weve reduced waste by 25% and increased farmer satisfaction.', avatar: Image6 },
   ];
 
   const stats = [

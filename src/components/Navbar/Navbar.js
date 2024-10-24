@@ -10,9 +10,9 @@ const Navbar = () => {
     { title: "Mart", path: "/mart" },
     { title: "Marketplace", path: "/marketplace" },
     { title: "Cart", path: "/cart" },
-    { title: "Inbox", path: "/inbox" },
-    { title: "My Warden", path: "/my-warden" },
-    { title: "IoT Dashboard", path: "/iot-dashboard" },
+    // { title: "Inbox", path: "/inbox" },
+    // { title: "My Warden", path: "/my-warden" },
+    // { title: "IoT Dashboard", path: "/iot-dashboard" },
     { title: "My Profile", path: "/profile" },
     { title: "Contact", path: "/contact" },
   ];

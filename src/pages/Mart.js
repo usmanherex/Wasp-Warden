@@ -1,15 +1,21 @@
 import React, { useState } from 'react';
-import { Search, Heart, Star } from 'lucide-react';
+import { Search, Heart, Star, MessageCircle, DollarSign, Minus, Plus, X } from 'lucide-react';
 
 import Image1 from '../assets/images/potato.jpg';
 import Image2 from '../assets/images/strawberry.jpeg';
 import Image3 from '../assets/images/tomato.jpeg';
+import Image4 from '../assets/images/rice.jpg';
+import Image5 from '../assets/images/sugarcane.jpeg';
 
 const products = [
-  { id: 1, name: 'Apples', price: 1.60, oldPrice: 2.00, discount: '20%', image: Image1, unit: '1lb', rating: 4.67, description: 'An apple is a sweet, edible fruit produced by an apple tree (Malus domestica). Apple trees are ... The skin of ripe apples is generally red, green, g...' },
-  { id: 2, name: 'Baby Spinach', price: 0.60, oldPrice: null, discount: null, image: Image2, unit: '2Pfund' },
-  { id: 3, name: 'Blueberries', price: 3.00, oldPrice: null, discount: null, image: Image3, unit: '1lb' },
-  { id: 4, name: 'Brussels Sprout', price: 3.00, oldPrice: 5.00, discount: '40%', image: Image1, unit: '1lb' },
+  { id: 1, name: 'Potatoes', price: 1.60, oldPrice: 2.00, discount: '20%', image: Image1, unit: '1lb', rating: 4.67, description: 'An apple is a sweet, edible fruit produced by an apple tree (Malus domestica). Apple trees are ... The skin of ripe apples is generally red, green, g...' },
+  { id: 2, name: 'Strawberries', price: 0.60, oldPrice: null, discount: null, image: Image2, unit: '1kg' },
+  { id: 3, name: 'Basmati Rice', price: 3.00, oldPrice: 5.00, discount: '40%', image: Image4, unit: '1kg' },
+  { id: 4, name: 'Sugarcane', price: 3.00, oldPrice: null, discount: null, image: Image5, unit: '1lb' },
+  { id: 4, name: 'Tomatoes', price: 4.00, oldPrice: null, discount: null, image: Image3, unit: '1lb' },
+  { id: 3, name: 'Basmati Rice', price: 3.00, oldPrice: 5.00, discount: '40%', image: Image4, unit: '1kg' },
+  { id: 4, name: 'Sugarcane', price: 3.00, oldPrice: null, discount: null, image: Image5, unit: '1lb' },
+  { id: 2, name: 'Strawberries', price: 0.60, oldPrice: null, discount: null, image: Image2, unit: '1kg' },
 ];
 
 const SearchBar = () => (
@@ -47,55 +53,191 @@ const ProductCard = ({ product, onProductClick }) => (
   </div>
 );
 
-const ProductPopup = ({ product, onClose }) => (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-    <div className="bg-white rounded-lg p-8 max-w-2xl w-full">
-      <div className="flex justify-between items-start mb-4">
-        <div>
-          <h2 className="text-2xl font-bold">{product.name}</h2>
-          <p className="text-gray-500">{product.unit}</p>
-        </div>
-        <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl">
-          &times;
+const ProductPopup = ({ product, onClose }) => {
+  const [quantity, setQuantity] = useState(1);
+  const [showNegotiationPopup, setShowNegotiationPopup] = useState(false);
+  
+  const incrementQuantity = () => {
+    setQuantity(prev => prev + 1);
+  };
+
+  const decrementQuantity = () => {
+    if (quantity > 1) {
+      setQuantity(prev => prev - 1);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg p-8 max-w-4xl w-full relative">
+        <button 
+          onClick={onClose} 
+          className="absolute right-4 top-4 p-1 hover:bg-gray-100 rounded-full"
+        >
+          <X className="w-6 h-6 text-gray-500" />
         </button>
-      </div>
-      <div className="flex mb-6">
-        <img src={product.image} alt={product.name} className="w-1/2 h-64 object-cover rounded mr-6" />
-        <div>
-          <div className="flex items-center mb-2">
-            <span className="bg-green-400 text-white px-2 py-1 rounded-full text-sm mr-2">
-              {product.discount || '0%'}
-            </span>
-            <span className="bg-green-400 text-white px-2 py-1 rounded-full text-sm flex items-center">
-              <Star className="w-4 h-4 mr-1" fill="currentColor" /> {product.rating || '0.0'}
-            </span>
-            <Heart className="w-6 h-6 text-gray-400 ml-auto" />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Left Column - Image */}
+          <div>
+            <img 
+              src={product.image} 
+              alt={product.name} 
+              className="w-full h-80 object-cover rounded-lg"
+            />
           </div>
-          <p className="text-gray-700 mb-4">{product.description}</p>
-          <div className="flex items-center">
-            <span className="text-green-600 text-2xl font-bold">${product.price.toFixed(2)}</span>
-            {product.oldPrice && (
-              <span className="text-gray-400 line-through ml-2">${product.oldPrice.toFixed(2)}</span>
-            )}
+
+          {/* Right Column - Product Details */}
+          <div>
+            <h2 className="text-2xl font-bold mb-2">{product.name}</h2>
+            <p className="text-gray-500 mb-4">{product.unit}</p>
+
+            <div className="flex items-center gap-2 mb-4">
+              {product.discount && (
+                <span className="bg-green-100 text-green-600 px-3 py-1 rounded-full text-sm">
+                  {product.discount} OFF
+                </span>
+              )}
+              <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm flex items-center">
+                <Star className="w-4 h-4 mr-1" fill="currentColor" />
+                {product.rating || '0.0'}
+              </span>
+            </div>
+
+            <p className="text-gray-700 mb-4">{product.description}</p>
+
+            <div className="flex items-baseline gap-2 mb-6">
+              <span className="text-3xl font-bold text-green-600">
+                ${product.price.toFixed(2)}
+              </span>
+              {product.oldPrice && (
+                <span className="text-gray-400 line-through">
+                  ${product.oldPrice.toFixed(2)}
+                </span>
+              )}
+            </div>
+
+            {/* Quantity Selector */}
+            <div className="flex items-center gap-4 mb-6">
+              <span className="text-gray-600">Quantity:</span>
+              <div className="flex items-center border rounded-lg">
+                <button 
+                  onClick={decrementQuantity}
+                  className="p-2 hover:bg-gray-100"
+                >
+                  <Minus className="w-4 h-4" />
+                </button>
+                <span className="px-4 py-2 border-x">{quantity}</span>
+                <button 
+                  onClick={incrementQuantity}
+                  className="p-2 hover:bg-gray-100"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col gap-3">
+              <button 
+                className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg flex items-center justify-center gap-2"
+              >
+                Add to Cart ({quantity})
+              </button>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <button 
+                  className="flex items-center justify-center gap-2 border border-green-500 text-green-500 hover:bg-green-50 py-3 rounded-lg"
+                  onClick={() => setShowNegotiationPopup(true)}
+                >
+                  <DollarSign className="w-4 h-4" />
+                  Negotiate Price
+                </button>
+                
+                <button 
+                  className="flex items-center justify-center gap-2 border border-blue-500 text-blue-500 hover:bg-blue-50 py-3 rounded-lg"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  Message Farmer
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-6 text-sm text-gray-500">
+              <p>Available Stock: 18 pieces</p>
+              <p>Categories: <span className="text-blue-500">fruits & vegetables, fruits</span></p>
+              <p>Seller: <span className="text-green-500">Grocery Shop</span></p>
+            </div>
           </div>
-          <button className="mt-4 bg-green-400 text-white px-6 py-2 rounded-full w-full">
-            Add To Shopping Cart
-          </button>
-          <p className="text-gray-500 mt-2 text-center">18 pieces available</p>
         </div>
       </div>
-      <div>
-        <p className="text-gray-700 font-semibold">Categories: 
-          <span className="text-blue-500"> fruits & vegetables</span>
-          <span className="text-blue-500"> fruits</span>
-        </p>
-        <p className="text-gray-700 font-semibold">Seller: 
-          <span className="text-green-500"> Grocery Shop</span>
-        </p>
-      </div>
+
+      {/* Negotiation Popup */}
+      {showNegotiationPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold">Negotiate Price</h3>
+              <button 
+                onClick={() => setShowNegotiationPopup(false)}
+                className="p-1 hover:bg-gray-100 rounded-full"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Your Offer Price (per {product.unit})
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                  <input 
+                    type="number" 
+                    className="w-full pl-8 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder="Enter your price"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Quantity
+                </label>
+                <input 
+                  type="number" 
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  placeholder="Enter quantity"
+                  min="1"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Additional Notes (Optional)
+                </label>
+                <textarea 
+                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 h-24 resize-none"
+                  placeholder="Any additional details or requirements..."
+                />
+              </div>
+
+              <button 
+                className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg"
+              >
+                Submit Negotiation Request
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-  </div>
-);
+  );
+};
+
 
 const FarmMarketplace = () => {
   const [selectedProduct, setSelectedProduct] = useState(null);

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock } from 'lucide-react';
+import { Mail, Lock, ArrowLeft } from 'lucide-react';
 
 import Image from '../assets/images/wasp.png';
 
@@ -17,6 +17,15 @@ const LoginPage = () => {
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-green-400 to-blue-500">
+      {/* Back to Home Link */}
+      <Link 
+        to="/home" 
+        className="absolute top-4 left-4 flex items-center text-white hover:text-gray-200 transition-colors"
+      >
+        <ArrowLeft className="h-6 w-6" />
+        <span className="ml-2 text-sm font-medium">Back to Home</span>
+      </Link>
+
       <div className="m-auto bg-white rounded-xl shadow-xl overflow-hidden max-w-md w-full">
         <div className="p-8">
           <div className="text-center mb-8">

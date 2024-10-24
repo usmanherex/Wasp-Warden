@@ -11,16 +11,21 @@ import InboxPage from './pages/Inbox';
 import ContactForm from './pages/Contact';
 import FarmMarketplace from './pages/Mart';
 import AgriEquipmentMarketplace from './pages/MarketPlace';
-import { MyWarden,PlantDiseaseDetection,WheatDiseaseDetection,PestDetection } from './pages/MyWarden';
+import { MyWarden, PlantDiseaseDetection, WheatDiseaseDetection, PestDetection } from './pages/MyWarden';
 import IoTDashboard from './pages/IOTDashboard';
 
 const AppContent = () => {
   const location = useLocation();
-  const noNavbarFooterPaths = ['/login', '/signup'];
+  
+  // Pages that should show navbar (all except login/signup)
+  const showNavbar = !['/login', '/signup'].includes(location.pathname);
+  
+  // Pages that should show footer
+  const showFooter = ['/', '/home', '/contact','/mart','/marketplace'].includes(location.pathname);
 
   return (
     <div>
-      {!noNavbarFooterPaths.includes(location.pathname) && <Navbar />}
+      {showNavbar && <Navbar />}
       
       <Routes>
         <Route path="/" element={<HomePage />} />
@@ -29,10 +34,10 @@ const AppContent = () => {
         <Route path="/home" element={<HomePage />} />
         <Route path="/profile" element={<UserProfilePage />} />
         <Route path="/cart" element={<CartPage />} />
-        <Route path="/inbox" element={<InboxPage/>} />
-        <Route path="/contact" element={<ContactForm/>} />
-        <Route path="/mart" element={<FarmMarketplace/>} />
-        <Route path="/marketplace" element={<AgriEquipmentMarketplace/>} />
+        <Route path="/inbox" element={<InboxPage />} />
+        <Route path="/contact" element={<ContactForm />} />
+        <Route path="/mart" element={<FarmMarketplace />} />
+        <Route path="/marketplace" element={<AgriEquipmentMarketplace />} />
         <Route path="/my-warden" element={<MyWarden />} />
         <Route path="/iot-dashboard" element={<IoTDashboard />} />
         <Route path="/plant-disease-detection" element={<PlantDiseaseDetection />} />
@@ -40,7 +45,7 @@ const AppContent = () => {
         <Route path="/wheat-disease-detection" element={<WheatDiseaseDetection />} />
       </Routes>
 
-      {!noNavbarFooterPaths.includes(location.pathname) && <Footer />}
+      {showFooter && <Footer />}
     </div>
   );
 };

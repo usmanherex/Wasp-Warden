@@ -14,7 +14,7 @@ const ContactForm = () => {
           <p className="text-gray-600 mb-4">Defence Raya, Lahore, Pakistan</p>
           
           <h3 className="font-semibold text-lg mb-2">Phone</h3>
-          <p className="text-gray-600 mb-4">+9290122122</p>
+          <p className="text-gray-600 mb-4">+92323122122</p>
           
           <h3 className="font-semibold text-lg mb-2">Email Address</h3>
           <p className="text-gray-600">waspwarden@support.com</p>

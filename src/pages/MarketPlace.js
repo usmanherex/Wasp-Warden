@@ -82,7 +82,7 @@ const EquipmentPopup = ({ equipment, onClose }) => (
             )}
           </div>
           <button className="bg-green-600 text-white px-6 py-2 rounded-full w-full text-lg font-semibold hover:bg-green-700 transition-colors">
-            Request a Quote
+           Add to Cart
           </button>
           <p className="text-gray-600 mt-2 text-center">Limited stock available</p>
         </div>
