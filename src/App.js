@@ -13,13 +13,16 @@ import FarmMarketplace from './pages/Mart';
 import AgriEquipmentMarketplace from './pages/MarketPlace';
 import { MyWarden, PlantDiseaseDetection, WheatDiseaseDetection, PestDetection } from './pages/MyWarden';
 import IoTDashboard from './pages/IOTDashboard';
+import ForgotPasswordPage from './pages/ForgotPassword';
+import ResetPasswordPage from './pages/ResetPassword';
 
 const AppContent = () => {
   const location = useLocation();
   
   // Pages that should show navbar (all except login/signup)
-  const showNavbar = !['/login', '/signup'].includes(location.pathname);
-  
+  const pathname = location.pathname;
+const showNavbar = !['/login', '/signup','/forgot-password', '/reset-password'].includes(pathname) && !/^\/reset-password\/[^/]+$/.test(pathname);
+
   // Pages that should show footer
   const showFooter = ['/', '/home', '/contact','/mart','/marketplace'].includes(location.pathname);
 
@@ -43,6 +46,9 @@ const AppContent = () => {
         <Route path="/plant-disease-detection" element={<PlantDiseaseDetection />} />
         <Route path="/pest-detection" element={<PestDetection />} />
         <Route path="/wheat-disease-detection" element={<WheatDiseaseDetection />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
       </Routes>
 
       {showFooter && <Footer />}

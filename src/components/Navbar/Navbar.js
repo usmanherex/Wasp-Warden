@@ -1,18 +1,33 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import Image from '../../assets/images/ward.png';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Check if user is logged in by looking for token in localStorage
+    const token = localStorage.getItem('token');
+    setIsLoggedIn(!!token);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setIsLoggedIn(false);
+    navigate('/login');
+  };
 
   const navigation = [
     { title: "Home", path: "/home" },
     { title: "Mart", path: "/mart" },
     { title: "Marketplace", path: "/marketplace" },
     { title: "Cart", path: "/cart" },
-    // { title: "Inbox", path: "/inbox" },
-    // { title: "My Warden", path: "/my-warden" },
-    // { title: "IoT Dashboard", path: "/iot-dashboard" },
+    { title: "Inbox", path: "/inbox" },
+    { title: "My Warden", path: "/my-warden" },
+    { title: "IoT Dashboard", path: "/iot-dashboard" },
     { title: "My Profile", path: "/profile" },
     { title: "Contact", path: "/contact" },
   ];
@@ -52,11 +67,22 @@ const Navbar = () => {
               </li>
             ))}
             <div className='space-y-3 items-center gap-x-6 md:flex md:space-y-0'>
-              <li>
-                <Link to="/login" className="block py-2 px-4 text-center text-white bg-green-700 hover:bg-green-800 rounded-md shadow transition duration-300">
-                  Login
-                </Link>
-              </li>
+              {!isLoggedIn ? (
+                <li>
+                  <Link to="/login" className="block py-2 px-4 text-center text-white bg-green-700 hover:bg-green-800 rounded-md shadow transition duration-300">
+                    Login
+                  </Link>
+                </li>
+              ) : (
+                <li>
+                  <button 
+                    onClick={handleLogout}
+                    className="block py-2 px-4 text-center text-white bg-green-700 hover:bg-green-800 rounded-md shadow transition duration-300"
+                  >
+                    Logout
+                  </button>
+                </li>
+              )}
             </div>
           </ul>
         </div>

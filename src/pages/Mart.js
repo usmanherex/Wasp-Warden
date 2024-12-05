@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Heart, Star, MessageCircle, DollarSign, Minus, Plus, X } from 'lucide-react';
+import { Search, Heart, Star, MessageCircle, DollarSign, Minus, Plus, X ,ThumbsUp,ThumbsDown} from 'lucide-react';
 
 import Image1 from '../assets/images/potato.jpg';
 import Image2 from '../assets/images/strawberry.jpeg';
@@ -17,6 +17,30 @@ const products = [
   { id: 4, name: 'Sugarcane', price: 3.00, oldPrice: null, discount: null, image: Image5, unit: '1lb' },
   { id: 2, name: 'Strawberries', price: 0.60, oldPrice: null, discount: null, image: Image2, unit: '1kg' },
 ];
+
+const sampleReviews = [
+  { id: 1, user: "John Doe", rating: 5, date: "2024-03-15", comment: "Really fresh and high quality! Will buy again.", helpful: 12, notHelpful: 2, verified: true },
+  { id: 2, user: "Sarah Smith", rating: 4, date: "2024-03-10", comment: "Good quality but slightly expensive.", helpful: 8, notHelpful: 1, verified: true },
+  { id: 3, user: "Mike Johnson", rating: 5, date: "2024-03-05", comment: "Excellent product and fast delivery!", helpful: 15, notHelpful: 0, verified: false }
+];
+
+// ... Previous code remains the same until ProductPopup ...
+
+const ReviewStars = ({ rating, size = "small", onClick = null }) => {
+  return (
+    <div className="flex">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <Star
+          key={star}
+          className={`${size === "small" ? "w-4 h-4" : "w-5 h-5"} ${
+            star <= rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
+          } ${onClick ? "cursor-pointer" : ""}`}
+          onClick={() => onClick && onClick(star)}
+        />
+      ))}
+    </div>
+  );
+};
 
 const SearchBar = () => (
   <div className="relative w-full max-w-2xl mx-auto mt-8 mb-12">
@@ -56,6 +80,11 @@ const ProductCard = ({ product, onProductClick }) => (
 const ProductPopup = ({ product, onClose }) => {
   const [quantity, setQuantity] = useState(1);
   const [showNegotiationPopup, setShowNegotiationPopup] = useState(false);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [newReview, setNewReview] = useState({
+    rating: 5,
+    comment: "",
+  });
   
   const incrementQuantity = () => {
     setQuantity(prev => prev + 1);
@@ -66,10 +95,16 @@ const ProductPopup = ({ product, onClose }) => {
       setQuantity(prev => prev - 1);
     }
   };
+  const handleSubmitReview = (e) => {
+    e.preventDefault();
+    // Here you would typically submit the review to your backend
+    setShowReviewForm(false);
+    setNewReview({ rating: 5, comment: "" });
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg p-8 max-w-4xl w-full relative">
+      <div className="bg-white rounded-lg p-8 max-w-4xl w-full relative max-h-[90vh] overflow-y-auto">
         <button 
           onClick={onClose} 
           className="absolute right-4 top-4 p-1 hover:bg-gray-100 rounded-full"
@@ -77,9 +112,10 @@ const ProductPopup = ({ product, onClose }) => {
           <X className="w-6 h-6 text-gray-500" />
         </button>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Product Details Section */}
+        <div className="flex flex-col md:flex-row gap-6 mb-8">
           {/* Left Column - Image */}
-          <div>
+          <div className="md:w-1/2">
             <img 
               src={product.image} 
               alt={product.name} 
@@ -88,7 +124,7 @@ const ProductPopup = ({ product, onClose }) => {
           </div>
 
           {/* Right Column - Product Details */}
-          <div>
+          <div className="md:w-1/2">
             <h2 className="text-2xl font-bold mb-2">{product.name}</h2>
             <p className="text-gray-500 mb-4">{product.unit}</p>
 
@@ -170,70 +206,190 @@ const ProductPopup = ({ product, onClose }) => {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Negotiation Popup */}
-      {showNegotiationPopup && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold">Negotiate Price</h3>
-              <button 
-                onClick={() => setShowNegotiationPopup(false)}
-                className="p-1 hover:bg-gray-100 rounded-full"
-              >
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
-            </div>
+        {/* Reviews Section */}
+        <div className="border-t pt-8">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-2xl font-bold">Customer Reviews</h3>
+            <button
+              onClick={() => setShowReviewForm(true)}
+              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
+            >
+              Write a Review
+            </button>
+          </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Your Offer Price (per {product.unit})
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-                  <input 
-                    type="number" 
-                    className="w-full pl-8 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                    placeholder="Enter your price"
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
+          {/* Review Statistics */}
+          <div className="bg-gray-50 p-6 rounded-lg mb-6">
+            <div className="flex items-center gap-4">
+              <div className="text-center">
+                <div className="text-4xl font-bold text-green-600">4.7</div>
+                <ReviewStars rating={4.7} size="large" />
+                <div className="text-gray-500 text-sm mt-1">Based on {sampleReviews.length} reviews</div>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Quantity
-                </label>
-                <input 
-                  type="number" 
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                  placeholder="Enter quantity"
-                  min="1"
-                />
+              <div className="flex-1 space-y-2">
+                {[5, 4, 3, 2, 1].map((stars) => (
+                  <div key={stars} className="flex items-center gap-2">
+                    <span className="text-sm w-3">{stars}</span>
+                    <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                    <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-yellow-400"
+                        style={{ width: `${stars * 20}%` }}
+                      />
+                    </div>
+                    <span className="text-sm text-gray-500">({Math.floor(Math.random() * 50)})</span>
+                  </div>
+                ))}
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Additional Notes (Optional)
-                </label>
-                <textarea 
-                  className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 h-24 resize-none"
-                  placeholder="Any additional details or requirements..."
-                />
-              </div>
-
-              <button 
-                className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg"
-              >
-                Submit Negotiation Request
-              </button>
             </div>
           </div>
+
+          {/* Reviews List */}
+          <div className="space-y-6">
+            {sampleReviews.map((review) => (
+              <div key={review.id} className="border-b pb-6">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">{review.user}</span>
+                      {review.verified && (
+                        <span className="text-green-500 text-sm">Verified Purchase</span>
+                      )}
+                    </div>
+                    <ReviewStars rating={review.rating} />
+                  </div>
+                  <span className="text-gray-500 text-sm">{review.date}</span>
+                </div>
+                <p className="text-gray-700 my-2">{review.comment}</p>
+                <div className="flex items-center gap-4 text-sm text-gray-500">
+                  <button className="flex items-center gap-1 hover:text-green-500">
+                    <ThumbsUp className="w-4 h-4" />
+                    Helpful ({review.helpful})
+                  </button>
+                  <button className="flex items-center gap-1 hover:text-red-500">
+                    <ThumbsDown className="w-4 h-4" />
+                    Not Helpful ({review.notHelpful})
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-      )}
+
+        {/* Add Review Form Popup */}
+        {showReviewForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[70]">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold">Write a Review</h3>
+                <button 
+                  onClick={() => setShowReviewForm(false)}
+                  className="p-1 hover:bg-gray-100 rounded-full"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmitReview} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Rating
+                  </label>
+                  <ReviewStars 
+                    rating={newReview.rating} 
+                    size="large"
+                    onClick={(rating) => setNewReview(prev => ({ ...prev, rating }))}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Your Review
+                  </label>
+                  <textarea 
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 h-32 resize-none"
+                    placeholder="Share your experience with this product..."
+                    value={newReview.comment}
+                    onChange={(e) => setNewReview(prev => ({ ...prev, comment: e.target.value }))}
+                    required
+                  />
+                </div>
+
+                <button 
+                  type="submit"
+                  className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg"
+                >
+                  Submit Review
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Negotiation Popup */}
+        {showNegotiationPopup && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold">Negotiate Price</h3>
+                <button 
+                  onClick={() => setShowNegotiationPopup(false)}
+                  className="p-1 hover:bg-gray-100 rounded-full"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Your Offer Price (per {product.unit})
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                    <input 
+                      type="number" 
+                      className="w-full pl-8 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                      placeholder="Enter your price"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Quantity
+                  </label>
+                  <input 
+                    type="number" 
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    placeholder="Enter quantity"
+                    min="1"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Additional Notes (Optional)
+                  </label>
+                  <textarea 
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 h-24 resize-none"
+                    placeholder="Any additional details or requirements..."
+                  />
+                </div>
+
+                <button 
+                  className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg"
+                >
+                  Submit Negotiation Request
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
