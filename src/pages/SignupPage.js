@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, CreditCard, Lock, Building, MapPin, Upload, ArrowLeft } from 'lucide-react';
+import { User, Mail, Phone, CreditCard, Lock, Building, MapPin, Upload, ArrowLeft , Calendar} from 'lucide-react';
 import logo from '../assets/images/wasp.png';
 import axios from 'axios';
 
@@ -18,6 +18,7 @@ const SignUpPage = () => {
     address: '',
     gender: '',
     profilePicture: null,
+    dateOfBirth: '',
     
     // Conditional fields based on user type
     consumerType: '',
@@ -86,6 +87,7 @@ const SignUpPage = () => {
     formPayload.append('nationalID', formData.nationalID);
     formPayload.append('address', formData.address);
     formPayload.append('gender', formData.gender);
+    formPayload.append('dateOfBirth', formData.dateOfBirth);
     formPayload.append('userType', userType.charAt(0).toUpperCase() + userType.slice(1));
     
     // Append profile picture if exists
@@ -222,6 +224,14 @@ const SignUpPage = () => {
                   <option value="Other">Other</option>
                 </select>
 
+                <InputField
+                  icon={<Calendar className="h-5 w-5 text-gray-400" />} 
+                  type="date"
+                  name="dateOfBirth"
+                  placeholder="Date of Birth"
+                  value={formData.dateOfBirth}
+                  onChange={handleChange}
+                />
                 <InputField
                   icon={<Phone className="h-5 w-5 text-gray-400" />}
                   type="tel"

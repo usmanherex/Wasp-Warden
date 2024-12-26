@@ -82,7 +82,7 @@ const HomePage = () => {
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.6 }}
                   >
-                    <Link to="#features" className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full text-lg transition duration-300 inline-flex items-center">
+                    <Link to="/my-warden" className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full text-lg transition duration-300 inline-flex items-center">
                       Explore Our Solutions
                       <ChevronRight className="ml-2 h-5 w-5" />
                     </Link>

@@ -3,6 +3,9 @@ import secrets
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import jwt
+import smtplib 
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from werkzeug.security import generate_password_hash
 from WardenDatabase import WardernDatabase
 import jwt
@@ -17,11 +20,6 @@ reset_tokens = {}
 app = Flask(__name__)
 CORS(app)
 app.config['SECRET_KEY'] = 'waspxxx'
-
-import smtplib 
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-
 
 def send_reset_email(recipient_email, reset_link, user_name):
     html_content = f"""
