@@ -1,3 +1,6 @@
+from base64 import b64encode
+from datetime import datetime
+from io import BytesIO
 import pyodbc
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -27,7 +30,6 @@ class WardernDatabase:
         cursor = conn.cursor()
 
         try:
-            # First, insert into Users and get the user ID
             cursor.execute("""
                 INSERT INTO Users 
                 (UserName, FirstName, LastName, Email, Password, Address, Gender, 
@@ -48,10 +50,8 @@ class WardernDatabase:
                 user_data.get('profilePicture')
             ))
             
-            # Fetch the user ID
             user_id = cursor.fetchone()[0]
-            
-            # Insert into specific type table based on user type
+        
             if user_type == 'Consumer':
                 cursor.execute("""
                     INSERT INTO Consumers 
@@ -100,21 +100,10 @@ class WardernDatabase:
             conn.close()
 
     def authenticate_user(self, identifier, password):
-        """
-        Authenticate user credentials using email or username
-        
-        Args:
-            identifier (str): User email or username
-            password (str): User password
-        
-        Returns:
-            dict: User information if authenticated, None otherwise
-        """
         conn = self._get_connection()
         cursor = conn.cursor()
 
         try:
-            # Check if identifier matches email or username
             cursor.execute("""
                 SELECT UserId, UserName, Password, UserType, Email 
                 FROM Users 
@@ -135,6 +124,29 @@ class WardernDatabase:
             cursor.close()
             conn.close()
 
+    def get_user_profile_picture(self, user_id):
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute("""
+                SELECT ProfilePicture 
+                FROM Users 
+                WHERE UserId = ?
+            """, (user_id,))
+            
+            result = cursor.fetchone()
+            
+            if result and result[0]:
+                image_binary = BytesIO(result[0])
+                image_binary.seek(0)
+                return image_binary
+            return None
+            
+        finally:
+            cursor.close()
+            conn.close()
+            
     def get_user_by_email(self, email):
         try:
             conn = self._get_connection()
@@ -143,7 +155,6 @@ class WardernDatabase:
             user = cursor.fetchone()
             
             if user:
-                # Convert row to dictionary
                 columns = [column[0] for column in cursor.description]
                 user_dict = dict(zip(columns, user))
                 return user_dict
@@ -165,3 +176,96 @@ class WardernDatabase:
         finally:
             cursor.close()
             conn.close()
+
+    def save_message(self, chat_id, sender_id, receiver_id, message_type, content, file_data=None, content_type=None):
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute("""
+                INSERT INTO Messages (ChatID, SenderID, ReceiverID, MessageType, Content, FileData, FileContentType)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (chat_id, sender_id, receiver_id, message_type, content, file_data, content_type))
+            conn.commit()
+            message_id = cursor.execute("SELECT @@IDENTITY").fetchone()[0]
+            
+            file_url = None
+            if file_data:
+                file_url = f"data:{content_type};base64,{b64encode(file_data).decode()}"
+            
+            return {
+                'messageId': int(message_id),
+                'senderId': int(sender_id),
+                'receiverId': int(receiver_id),
+                'messageType': message_type,
+                'content': content,
+                'fileUrl': file_url,
+                'timestamp': datetime.now().isoformat()
+            }
+        finally:
+            cursor.close()
+            conn.close()
+    
+    def get_user_chats(self, user_id):
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute("""
+                SELECT c.ChatID, c.User1ID, c.User2ID, c.CreatedAt,
+                       u1.UserName as User1Name, u2.UserName as User2Name
+                FROM Chat c
+                JOIN Users u1 ON c.User1ID = u1.UserID
+                JOIN Users u2 ON c.User2ID = u2.UserID
+                WHERE c.User1ID = ? OR c.User2ID = ?
+            """, (user_id, user_id))
+            
+            chats = []
+            for row in cursor.fetchall():
+                chats.append({
+                    'chatId': row.ChatID,
+                    'user1Id': row.User1ID,
+                    'user2Id': row.User2ID,
+                    'user1Name': row.User1Name,
+                    'user2Name': row.User2Name,
+                    'createdAt': row.CreatedAt.isoformat()
+                })
+            return chats
+            
+        finally:
+            cursor.close()
+            conn.close()
+    
+    def get_chat_messages(self, chat_id):
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute("""
+                SELECT MessageID, SenderID, ReceiverID, MessageType, Content, FileData, FileContentType, Time_Stamp
+                FROM Messages
+                WHERE ChatID = ?
+                ORDER BY Time_Stamp ASC
+            """, (chat_id,))
+            
+            messages = []
+            for row in cursor.fetchall():
+                file_url = None
+                if row.FileData:
+                    file_url = f"data:{row.FileContentType};base64,{b64encode(row.FileData).decode()}"
+                    
+                messages.append({
+                    'messageId': row.MessageID,
+                    'senderId': row.SenderID,
+                    'receiverId': row.ReceiverID,
+                    'messageType': row.MessageType,
+                    'content': row.Content,
+                    'fileUrl': file_url,
+                    'timestamp': row.Time_Stamp.isoformat()
+                })
+            return messages
+            
+        finally:
+            cursor.close()
+            conn.close()
+            
