@@ -25,7 +25,7 @@ app.config['SECRET_KEY'] = 'waspxxx'
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 db = WardernDatabase(
-    server='DESKTOP-6HS4LFD\\SQLEXPRESS', 
+    server='DEADSEC', 
     database='WaspWardenDB',
     #Username and Password will be used when db is not local
     username='your_username', 

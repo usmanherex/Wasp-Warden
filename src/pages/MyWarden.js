@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Leaf, Bug, Wheat, Upload, ArrowRight, AlertCircle, Shield, Info } from 'lucide-react';
+import { Leaf, Bug, Wheat,Upload, ArrowRight, AlertCircle, Shield, Info } from 'lucide-react';
 
 // Import images (you'll need to add these to your project)
 import plantDiseaseImg from '../assets/images/plant-disease.jpg';
 import pestDetectionImg from '../assets/images/pest_disease.jpg';
-import wheatDiseaseImg from '../assets/images/wheat_disease.jpg';
+import maizeDiseaseImg from '../assets/images/maize_disease.jpg';
 
 // MyWarden component
 const MyWarden = () => {
@@ -16,7 +16,7 @@ const MyWarden = () => {
       icon: Leaf,
       path: '/plant-disease-detection',
       image: plantDiseaseImg,
-      stats: { accuracy: '98%', detections: '10M+' }
+      stats: { accuracy: '97%', diseases: '30+' }
     },
     {
       title: 'Pest Detection',
@@ -24,15 +24,15 @@ const MyWarden = () => {
       icon: Bug,
       path: '/pest-detection',
       image: pestDetectionImg,
-      stats: { species: '1000+', prevention: '95%' }
+      stats: { accuracy: '92%',species: '15' }
     },
     {
-      title: 'Wheat Crop Disease Detection',
-      description: 'Specialized detection for common wheat crop diseases to protect your harvest.',
+      title: 'Maize Crop Disease Detection',
+      description: 'Specialized detection for common maize crop diseases to protect your harvest.',
       icon: Wheat,
-      path: '/wheat-disease-detection',
-      image: wheatDiseaseImg,
-      stats: { yield: '+20%', diseases: '50+' }
+      path: '/maize-disease-detection',
+      image: maizeDiseaseImg,
+      stats: {  accuracy: '95%', diseases: '3' }
     }
   ];
 
@@ -94,19 +94,38 @@ const LoadingModal = ({ isOpen, message }) => {
   };
   
   // DetectionPage component
-  const DetectionPage = ({ title, description, icon: Icon }) => {
+  const DetectionPage = ({ title, description, icon: Icon,type }) => {
     const [selectedImage, setSelectedImage] = useState(null);
+    const [selectedFile, setSelectedFile] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [results, setResults] = useState(null);
+    const [error, setError] = useState(null);
     const [loadingMessage, setLoadingMessage] = useState('');
   
     const handleImageUpload = (event) => {
       const file = event.target.files[0];
+      setSelectedFile(file);
       setSelectedImage(URL.createObjectURL(file));
+      setError(null);
+      setResults(null);
     };
-  
-    const processResults = () => {
+    let apiURL;
+      if(type==='pest')
+      {
+        apiURL='http://127.0.0.1:5001/predict';
+      }
+      else if(type=='maize')
+      {
+        apiURL='http://127.0.0.1:5002/predict';
+      }
+      else if (type=='plant')
+      {
+        apiURL='http://127.0.0.1:5003/predict';
+      }
+    const processResults = async () => {
+      if (!selectedFile) return;
       setIsLoading(true);
+      setError(null);
       const messages = [
         "Analyzing image patterns...",
         "Comparing with our extensive database...",
@@ -120,33 +139,47 @@ const LoadingModal = ({ isOpen, message }) => {
         messageIndex = (messageIndex + 1) % messages.length;
       }, 3000);
 
-      setTimeout(() => {
-        clearInterval(messageInterval);
-        setResults({
-          detectedIssue: 'Powdery Mildew',
-          confidence: '95%',
-          severity: 'Moderate',
-          affectedArea: '30%',
-          estimatedImpact: 'Yield reduction by 15-20%',
-          recommendations: [
-            'Apply sulfur-based fungicide within 3 days',
-            'Improve air circulation by pruning and spacing plants',
-            'Adjust watering schedule to morning hours',
-            'Monitor humidity levels and use dehumidifiers if necessary'
-          ],
-          preventiveMeasures: [
-            'Use resistant plant varieties',
-            'Maintain proper plant nutrition',
-            'Implement crop rotation'
-          ]
+      try {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+  
+        const response = await fetch(apiURL, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'Accept': 'application/json',
+          },
         });
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Network response was not ok' }));
+          throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log(data);
+      
+  
+        setResults({
+          detectedIssue: data.predicted_class,
+          confidence: data.confidence,
+          severity: data.severity===null?"None":data.severity,
+          recommendations: data.recommendations.split('.').filter(item => item.trim()),
+         
+          preventiveMeasures: data.preventions.split('.').filter(item => item.trim()),
+          chemical: data.chemical.split('. ').filter(item => item.trim())
+        });
+      } catch (err) {
+        setError(err.message);
+        console.error('Error:', err);
+      } finally {
+        clearInterval(messageInterval);
         setIsLoading(false);
-      }, 15000);
+      }
     };
   
     return (
       <div className="bg-gradient-to-br from-green-50 to-blue-50 min-h-screen p-4 sm:p-6 md:p-8">
         <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+          {/* Header section remains the same */}
           <div className="bg-gradient-to-r from-green-600 to-green-700 p-8">
             <div className="flex items-center justify-center mb-4">
               <div className="bg-white p-3 rounded-full mr-4">
@@ -156,8 +189,9 @@ const LoadingModal = ({ isOpen, message }) => {
             </div>
             <p className="text-center text-green-100 text-sm sm:text-base max-w-2xl mx-auto">{description}</p>
           </div>
-          
+  
           <div className="p-6">
+            {/* Upload section */}
             <div className="mb-6">
               <h2 className="text-xl font-semibold mb-3 text-green-800">Upload Your Image</h2>
               <div className="flex items-center justify-center w-full">
@@ -172,6 +206,7 @@ const LoadingModal = ({ isOpen, message }) => {
               </div>
             </div>
   
+            {/* Selected Image Preview */}
             {selectedImage && (
               <div className="mb-6">
                 <h2 className="text-xl font-semibold mb-3 text-green-800">Selected Image</h2>
@@ -179,6 +214,17 @@ const LoadingModal = ({ isOpen, message }) => {
               </div>
             )}
   
+            {/* Error Message */}
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-600 flex items-center">
+                  <AlertCircle className="w-5 h-5 mr-2" />
+                  {error}
+                </p>
+              </div>
+            )}
+  
+            {/* Process Button */}
             <button
               onClick={processResults}
               disabled={!selectedImage || isLoading}
@@ -191,19 +237,41 @@ const LoadingModal = ({ isOpen, message }) => {
               {isLoading ? 'Processing...' : 'Analyze Image'}
             </button>
   
+            {/* Loading Modal */}
             <LoadingModal isOpen={isLoading} message={loadingMessage} />
   
+            {/* Results Section */}
             {results && (
               <div className="mt-8 bg-green-50 p-6 rounded-lg shadow-inner">
                 <h2 className="text-2xl font-bold mb-4 text-green-800">Detection Results</h2>
                 <div className="space-y-4">
-                  <div className="flex items-center bg-white p-3 rounded-md shadow">
-                    <AlertCircle className="w-6 h-6 text-red-600 mr-3" />
-                    <div>
-                      <p className="font-semibold">Detected Issue:</p>
-                      <p className="text-red-600 text-lg">{results.detectedIssue}</p>
-                    </div>
-                  </div>
+                <div className="flex items-center bg-white p-3 rounded-md shadow">
+ {results.detectedIssue.toLowerCase().includes('healthy') ? (
+   <>  
+     <Shield className="w-6 h-6 text-green-600 mr-3" />
+     <div>
+       <p className="font-semibold">Plant Condition:</p> 
+       <p className="text-green-600 text-lg">{results.detectedIssue}</p>
+     </div>
+   </>
+ ) : type === 'pest' ? (
+   <>
+     <Bug className="w-6 h-6 text-red-600 mr-3" />
+     <div>
+       <p className="font-semibold">Detected Pest:</p>
+       <p className="text-red-600 text-lg">{results.detectedIssue}</p>
+     </div>
+   </>
+ ) : (
+   <>
+     <AlertCircle className="w-6 h-6 text-red-600 mr-3" />
+     <div>
+       <p className="font-semibold">Detected Disease:</p>
+       <p className="text-red-600 text-lg">{results.detectedIssue}</p>
+     </div>
+   </>
+ )}
+</div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="bg-white p-3 rounded-md shadow">
                       <p className="font-semibold">Confidence:</p>
@@ -211,16 +279,24 @@ const LoadingModal = ({ isOpen, message }) => {
                     </div>
                     <div className="bg-white p-3 rounded-md shadow">
                       <p className="font-semibold">Severity:</p>
-                      <p className="text-orange-500 text-lg">{results.severity}</p>
+                      <p className={`text-lg ${
+ results.severity === 'None' ? 'text-black' :
+ results.severity === 'Low' ? 'text-yellow-500' :
+ results.severity === 'Medium' ? 'text-orange-500' :
+ results.severity === 'High' ? 'text-red-600' :
+ results.severity === 'Severe' ? 'text-red-800' :
+ 'text-black'
+}`}>{results.severity}</p>
                     </div>
-                    <div className="bg-white p-3 rounded-md shadow">
-                      <p className="font-semibold">Affected Area:</p>
-                      <p className="text-blue-600 text-lg">{results.affectedArea}</p>
-                    </div>
-                    <div className="bg-white p-3 rounded-md shadow">
-                      <p className="font-semibold">Estimated Impact:</p>
-                      <p className="text-purple-600 text-lg">{results.estimatedImpact}</p>
-                    </div>
+                  </div>
+                  <div className="bg-white p-3 rounded-md shadow">
+                    <p className="font-semibold">Recommended Chemical Treatment:</p>
+                    <ul className="list-disc list-inside space-y-1 bg-white p-3 rounded-md shadow">
+                      {results.chemical.map((rec, index) => (
+                        <li key={index} className="text-purple-700">{rec}</li>
+                      ))}
+                    </ul>
+                   
                   </div>
                   <div>
                     <h3 className="font-semibold text-lg mb-2 flex items-center text-green-700">
@@ -257,8 +333,9 @@ const LoadingModal = ({ isOpen, message }) => {
   const PlantDiseaseDetection = () => (
     <DetectionPage
       title="Plant Disease Detection"
-      description="Upload an image of your plant to detect and diagnose potential diseases using our advanced AI technology."
+      description="Upload an image of your plant infected leaf part with a good background to detect and diagnose potential diseases using our advanced AI technology."
       icon={Leaf}
+      type="plant"
     />
   );
   
@@ -267,15 +344,17 @@ const LoadingModal = ({ isOpen, message }) => {
       title="Pest Detection"
       description="Identify harmful pests in your crops by uploading an image. Our AI will analyze and provide recommendations."
       icon={Bug}
+      type="pest"
     />
   );
   
-  const WheatDiseaseDetection = () => (
+  const MaizeDiseaseDetection = () => (
     <DetectionPage
-      title="Wheat Crop Disease Detection"
-      description="Specialized detection for wheat crop diseases. Upload an image of your wheat crop for analysis and treatment recommendations."
+      title="Maize Crop Disease Detection"
+      description="Specialized detection for maize crop diseases. Upload an image of your maize crop for analysis and treatment recommendations."
       icon={Wheat}
+      type="maize"
     />
   );
   
-  export {MyWarden, DetectionPage, PlantDiseaseDetection, PestDetection, WheatDiseaseDetection };
+  export {MyWarden, DetectionPage, PlantDiseaseDetection, PestDetection, MaizeDiseaseDetection };

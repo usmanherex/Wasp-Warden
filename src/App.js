@@ -11,7 +11,7 @@ import InboxPage from './pages/Inbox';
 import ContactForm from './pages/Contact';
 import FarmMarketplace from './pages/Mart';
 import AgriEquipmentMarketplace from './pages/MarketPlace';
-import { MyWarden, PlantDiseaseDetection, WheatDiseaseDetection, PestDetection } from './pages/MyWarden';
+import { MyWarden, PlantDiseaseDetection, MaizeDiseaseDetection, PestDetection } from './pages/MyWarden';
 import IoTDashboard from './pages/IOTDashboard';
 import ForgotPasswordPage from './pages/ForgotPassword';
 import ResetPasswordPage from './pages/ResetPassword';
@@ -45,7 +45,7 @@ const showNavbar = !['/login', '/signup','/forgot-password', '/reset-password'].
         <Route path="/iot-dashboard" element={<IoTDashboard />} />
         <Route path="/plant-disease-detection" element={<PlantDiseaseDetection />} />
         <Route path="/pest-detection" element={<PestDetection />} />
-        <Route path="/wheat-disease-detection" element={<WheatDiseaseDetection />} />
+        <Route path="/maize-disease-detection" element={<MaizeDiseaseDetection />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
