@@ -268,4 +268,76 @@ class WardernDatabase:
         finally:
             cursor.close()
             conn.close()
+
+    def create_call(self, chat_id, caller_id, receiver_id, call_type):
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            # Use SCOPE_IDENTITY() to get the last inserted ID in SQL Server
+            cursor.execute("""
+                INSERT INTO Calls (ChatID, CallerID, ReceiverID, CallType, Status, StartTime)
+                OUTPUT INSERTED.CallID
+                VALUES (?, ?, ?, ?, 'initiated', CURRENT_TIMESTAMP)
+            """, (chat_id, caller_id, receiver_id, call_type))
+            
+            # Fetch the returned CallID
+            call_id = cursor.fetchone()[0]
+            conn.commit()
+            
+            # Get the full call details
+            cursor.execute("""
+                SELECT CallID, ChatID, CallerID, ReceiverID, CallType, Status, StartTime
+                FROM Calls
+                WHERE CallID = ?
+            """, (call_id,))
+            
+            row = cursor.fetchone()
+            return {
+                'callId': row[0],  # Using index instead of column name for pyodbc
+                'chatId': row[1],
+                'callerId': row[2],
+                'receiverId': row[3],
+                'callType': row[4],
+                'status': row[5],
+                'startTime': row[6].isoformat() if row[6] else None
+            }
+            
+        finally:
+            cursor.close()
+            conn.close()
+
+    def update_call_status(self, call_id, status):
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute("""
+                UPDATE Calls
+                SET Status = ?
+                WHERE CallID = ?
+            """, (status, call_id))
+            conn.commit()
+            
+        finally:
+            cursor.close()
+            conn.close()
+
+    def end_call(self, call_id):
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute("""
+                UPDATE Calls
+                SET Status = 'ended',
+                    EndTime = CURRENT_TIMESTAMP,
+                    Duration = DATEDIFF(second, StartTime, CURRENT_TIMESTAMP)
+                WHERE CallID = ?
+            """, (call_id,))
+            conn.commit()
+            
+        finally:
+            cursor.close()
+            conn.close()        
             
