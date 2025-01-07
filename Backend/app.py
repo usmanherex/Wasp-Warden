@@ -25,7 +25,7 @@ app.config['SECRET_KEY'] = 'waspxxx'
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 db = WardernDatabase(
-    server='DEADSEC', 
+    server='DESKTOP-6HS4LFD\\SQLEXPRESS', 
     database='WaspWardenDB',
     #Username and Password will be used when db is not local
     username='your_username', 
@@ -209,6 +209,86 @@ def handle_message(data):
     room = f"chat_{chat_id}"
     emit('new_message', message, room=room)
 
+@socketio.on('initiate_call')
+def handle_call_initiation(data):
+    token = request.args.get('token')
+    decoded_token = authenticate_socket(token)
+    if not decoded_token:
+        return
+
+    caller_id = decoded_token['user']['userId']
+    receiver_id = data['receiverId']
+    call_type = data['callType']  # 'audio' or 'video'
+    chat_id = data['chatId']
+    
+    # Save call record to database
+    call = db.create_call(
+        chat_id=chat_id,
+        caller_id=caller_id,
+        receiver_id=receiver_id,
+        call_type=call_type
+    )
+    
+    # Emit call request to the receiver
+    room = f"chat_{chat_id}"
+    emit('incoming_call', {
+        'callId': call['callId'],
+        'callerId': caller_id,
+        'callType': call_type,
+        'chatId': chat_id
+    }, room=room)
+
+@socketio.on('accept_call')
+def handle_call_accept(data):
+    token = request.args.get('token')
+    decoded_token = authenticate_socket(token)
+    if not decoded_token:
+        return
+        
+    call_id = data['callId']
+    chat_id = data['chatId']
+    
+    # Update call status in database
+    db.update_call_status(call_id, 'connected')
+    
+    room = f"chat_{chat_id}"
+    emit('call_accepted', {
+        'callId': call_id,
+        'peerId': decoded_token['user']['userId']
+    }, room=room)
+
+@socketio.on('reject_call')
+def handle_call_reject(data):
+    call_id = data['callId']
+    chat_id = data['chatId']
+    reason = data.get('reason', 'declined')
+    
+    # Update call status in database
+    db.update_call_status(call_id, 'rejected')
+    
+    room = f"chat_{chat_id}"
+    emit('call_rejected', {
+        'callId': call_id,
+        'reason': reason
+    }, room=room)
+
+
+@socketio.on('end_call')
+def handle_call_end(data):
+    try:
+        call_id = data['callId']
+        chat_id = data['chatId']
+        
+        db.end_call(call_id)
+        
+        room = f"chat_{chat_id}"
+        emit('call_ended', {
+            'callId': call_id
+        }, room=room)
+    except KeyError as e:
+        print(f"Missing required data for end_call: {str(e)}")
+        return {'error': f'Missing required field: {str(e)}'}
+
 @app.route('/api/chats/<int:user_id>', methods=['GET'])
 def get_chats(user_id):
     chats = db.get_user_chats(user_id)
@@ -239,28 +319,85 @@ def upload_file():
 
 def send_reset_email(recipient_email, reset_link, user_name):
     html_content = f"""
+    <!DOCTYPE html>
     <html>
+        <head>
+            <style>
+                body {{
+                    font-family: Arial, sans-serif;
+                    max-width: 600px;
+                    margin: 0 auto;
+                    padding: 20px;
+                    color: #333;
+                }}
+                .logo {{
+                    text-align: center;
+                    margin-bottom: 30px;
+                }}
+                .logo img {{
+                    width: 100px;
+                }}
+                h1 {{
+                    color: #1B8755;
+                    text-align: center;
+                    font-size: 24px;
+                }}
+                .button {{
+                    background-color: #1B8755;
+                    color: white !important;
+                    padding: 12px 24px;
+                    text-decoration: none;
+                    border-radius: 4px;
+                    display: inline-block;
+                    margin: 20px 0;
+                }}
+                .center {{
+                    text-align: center;
+                }}
+                .warning {{
+                    background-color: #fff9e6;
+                    border-left: 4px solid #ffd700;
+                    padding: 15px;
+                    margin: 20px 0;
+                }}
+                .footer {{
+                    text-align: center;
+                    color: #666;
+                    font-size: 14px;
+                    margin-top: 40px;
+                }}
+            </style>
+        </head>
         <body>
-            <h2>Password Reset Request</h2>
+            <div class="logo">
+                <a href="https://imgbb.com/"><img src="https://i.ibb.co/gvNCKYj/wasp.png" alt="wasp" border="0"></a>
+            </div>
+            <h1>Password Reset Request</h1>
             <p>Hello {user_name},</p>
-            <p>We received a request to reset your password. Click the link below to reset it:</p>
-            <p><a href="{reset_link}">Reset Password</a></p>
-            <p>Or copy and paste this link in your browser:</p>
-            <p>{reset_link}</p>
-            <p>This link will expire in 1 hour.</p>
-            <p>If you didn't request this, please ignore this email.</p>
-            <br>
-            <p>Best regards,</p>
-            <p>WaspWarden Team</p>
+            <p>We received a request to reset your password for your WaspWarden account. Click the button below to create a new password:</p>
+            <div class="center">
+                <a href="{reset_link}" class="button">Reset Your Password</a>
+            </div>
+            <p>You can also paste this link directly into your browser:</p>
+            <p><a href="{reset_link}">{reset_link}</a></p>
+            <div class="warning">
+                <strong>Important:</strong> This link will expire in 1 hour. If you did not request a password reset, please ignore this email or contact our support team.
+            </div>
+            <p>If you need assistance, please contact our support team.</p>
+            <div class="footer">
+                <p>Best regards,<br>
+                WaspWarden Team</p>
+                <p>© 2024 WaspWarden. All rights reserved.</p>
+            </div>
         </body>
     </html>
     """
 
-    smtp_server = 'smtp-mail.outlook.com'
+    smtp_server = 'smtp.gmail.com'
     smtp_port = 587
-    smtp_user = 'yourEmailHere'
-    smtp_password = 'yourPasswordHere'
-    from_email = 'yourEmailHere'
+    smtp_user = 'waspwardenproject@gmail.com'
+    smtp_password = 'deif snid bkuv wbon'
+    from_email = 'waspwardenproject@gmail.com'
     message = MIMEMultipart('alternative')
     message['From'] = from_email
     message['To'] = recipient_email
