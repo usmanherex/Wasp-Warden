@@ -1,0 +1,62 @@
+CREATE TABLE Users (
+    UserId INT IDENTITY(1,1) PRIMARY KEY,
+    UserName VARCHAR(50) NOT NULL UNIQUE,
+    FirstName VARCHAR(50) NOT NULL,
+    LastName VARCHAR(50) NOT NULL,
+    Email VARCHAR(200) NOT NULL UNIQUE,
+    Password VARCHAR(255) NOT NULL,
+    Address VARCHAR(255) NULL,
+    Gender VARCHAR(10) NULL,
+    PhoneNumber VARCHAR(15) NOT NULL,
+    NationalID VARCHAR(20) NOT NULL UNIQUE,
+    ProfilePicture VARBINARY(MAX) NULL, -- Store profile picture in binary format
+    AccountStatus VARCHAR(20) DEFAULT 'Active' CHECK (AccountStatus IN ('Active', 'Suspended', 'Deleted')), -- Allowed values
+    UserType VARCHAR(20) CHECK (UserType IN ('Consumer', 'Farmer', 'Agri-Business')) NOT NULL,
+    RegistrationDate DATE DEFAULT GETDATE()
+);
+
+CREATE TABLE Consumers (
+    ConsumerID INT IDENTITY(1,1) PRIMARY KEY,
+    UserId INT NOT NULL, -- FK to Users
+    AssociatedCompany VARCHAR(100) NULL,
+    ConsumerType VARCHAR(20) CHECK (ConsumerType IN ('Individual', 'Corporate')) NOT NULL,
+    FOREIGN KEY (UserId) REFERENCES Users(UserId) ON DELETE CASCADE
+);
+
+CREATE TABLE AgriBusiness (
+    AgriBusinessID INT IDENTITY(1,1) PRIMARY KEY,
+    UserId INT NOT NULL, -- FK to Users
+    AgriBusinessName VARCHAR(100) NOT NULL,
+    BusinessDescription TEXT NULL,
+    BusinessType VARCHAR(20) CHECK (BusinessType IN ('Retailer', 'Wholesaler', 'Distributor')) NOT NULL,
+    BusinessRegistrationNumber VARCHAR(50) UNIQUE NULL,
+    FOREIGN KEY (UserId) REFERENCES Users(UserId) ON DELETE CASCADE
+);
+
+CREATE TABLE Farmers (
+    FarmerID INT IDENTITY(1,1) PRIMARY KEY,
+    UserId INT NOT NULL, -- FK to Users
+    FarmAddress TEXT NOT NULL,
+    FarmSize FLOAT NULL, -- Size in acres/hectares
+	Specialization VARCHAR(50) NULL, -- Crops, Livestock, Mixed
+    FarmYieldCapacity FLOAT NULL, -- Annual production capacity
+    FOREIGN KEY (UserId) REFERENCES Users(UserId) ON DELETE CASCADE
+);
+
+CREATE TABLE Chat (
+    ChatID INT IDENTITY(1,1) PRIMARY KEY,
+    User1ID INT FOREIGN KEY REFERENCES Users(UserID),
+    User2ID INT FOREIGN KEY REFERENCES Users(UserID),
+    CreatedAt DATETIME DEFAULT GETDATE()
+)
+
+CREATE TABLE Messages (
+    MessageID INT IDENTITY(1,1) PRIMARY KEY,
+    ChatID INT FOREIGN KEY REFERENCES Chat(ChatID),
+    SenderID INT FOREIGN KEY REFERENCES Users(UserID),
+    ReceiverID INT FOREIGN KEY REFERENCES Users(UserID),
+    MessageType VARCHAR(50),
+    Content TEXT,
+    FileUrl VARCHAR(MAX),
+    Time_Stamp DATETIME DEFAULT GETDATE()
+)
