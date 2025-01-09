@@ -24,7 +24,6 @@ const sampleReviews = [
   { id: 3, user: "Mike Johnson", rating: 5, date: "2024-03-05", comment: "Excellent product and fast delivery!", helpful: 15, notHelpful: 0, verified: false }
 ];
 
-// ... Previous code remains the same until ProductPopup ...
 
 const ReviewStars = ({ rating, size = "small", onClick = null }) => {
   return (
@@ -54,10 +53,11 @@ const SearchBar = () => (
     </button>
   </div>
 );
-
+const isSaved=0; // make the state for the saveProducts
 const ProductCard = ({ product, onProductClick }) => (
   <div className="bg-white p-4 rounded-lg shadow-md cursor-pointer transition-transform hover:scale-105" onClick={() => onProductClick(product)}>
     <div className="relative mb-4">
+   
       <img src={product.image} alt={product.name} className="w-full h-48 object-cover rounded" />
       {product.discount && (
         <span className="absolute top-2 left-2 bg-green-400 text-white px-2 py-1 rounded-full text-sm">{product.discount}</span>
@@ -138,6 +138,14 @@ const ProductPopup = ({ product, onClose }) => {
                 <Star className="w-4 h-4 mr-1" fill="currentColor" />
                 {product.rating || '0.0'}
               </span>
+              <span className=" text-yellow-700 px-3 py-1 rounded-full text-sm flex items-center">
+       
+        <Heart 
+          className={`w-5 h-5 ${isSaved ? 'text-red-500 fill-red-500' : 'text-gray-400'}`}
+        />
+     
+              </span>
+            
             </div>
 
             <p className="text-gray-700 mb-4">{product.description}</p>

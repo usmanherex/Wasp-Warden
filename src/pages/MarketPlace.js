@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Star, Tractor, Truck, Wrench } from 'lucide-react';
+import { Search, Star, Tractor, Truck, Wrench,Heart } from 'lucide-react';
 
 import Image1 from '../assets/images/sprayer.jpg';
 import Image2 from '../assets/images/harvester.jpeg';
@@ -25,7 +25,7 @@ const SearchBar = () => (
     </button>
   </div>
 );
-
+const isSaved=1;
 const EquipmentCard = ({ equipment, onEquipmentClick }) => (
   <div className="bg-white p-4 rounded-lg shadow-md cursor-pointer transition-transform hover:scale-105" onClick={() => onEquipmentClick(equipment)}>
     <div className="relative mb-4">
@@ -46,6 +46,7 @@ const EquipmentCard = ({ equipment, onEquipmentClick }) => (
       <div className="flex items-center">
         <Star className="w-4 h-4 text-yellow-400 mr-1" fill="currentColor" />
         <span>{equipment.rating}</span>
+        
       </div>
     </div>
   </div>
@@ -73,6 +74,13 @@ const EquipmentPopup = ({ equipment, onClose }) => (
             <span className="bg-yellow-400 text-white px-3 py-1 rounded-full text-sm flex items-center">
               <Star className="w-4 h-4 mr-1" fill="currentColor" /> {equipment.rating}
             </span>
+            <span className=" text-yellow-700 px-3 py-1 rounded-full text-sm flex items-center">
+       
+       <Heart 
+         className={`w-5 h-5 ${isSaved ? 'text-red-500 fill-red-500' : 'text-gray-400'}`}
+       />
+    
+             </span>
           </div>
           <p className="text-gray-700 mb-4">{equipment.description}</p>
           <div className="flex items-center mb-4">

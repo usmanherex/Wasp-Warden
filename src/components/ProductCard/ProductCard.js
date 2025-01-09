@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 const ProductCard = ({ product }) => {
   return (
     <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+      
       <img
         src={product.image}
         alt={product.title}

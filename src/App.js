@@ -15,6 +15,18 @@ import { MyWarden, PlantDiseaseDetection, MaizeDiseaseDetection, PestDetection }
 import IoTDashboard from './pages/IOTDashboard';
 import ForgotPasswordPage from './pages/ForgotPassword';
 import ResetPasswordPage from './pages/ResetPassword';
+import CreateProduct from './pages/CreateProduct_Farmer';
+import CreateAgriBusinessProduct from './pages/CreateProduct_AgriBusiness';
+import ManageProducts from './pages/ManageProducts';
+import EditFarmerProduct from './pages/EditProduct_Farmer';
+import EditAgriBusinessProduct from './pages/EditProduct_AgriBusiness';
+import AIReportsPage from './pages/AiReports';
+import UserProfile from './pages/UserProfileThirdPerson';
+import NegotiationsPage from './pages/Negotiations';
+import OrderHistoryPage from './pages/OrderHistory';
+import NotificationsPage from './pages/Notifications';
+import SavedProductsPage from './pages/SavedProducts';
+
 
 const AppContent = () => {
   const location = useLocation();
@@ -49,6 +61,17 @@ const showNavbar = !['/login', '/signup','/forgot-password', '/reset-password'].
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+        <Route path="/create-product-farmer" element={<CreateProduct />} />
+        <Route path="/create-product-agribusiness" element={<CreateAgriBusinessProduct />} />
+        <Route path="/manage-products" element={<ManageProducts />} />
+        <Route path="/edit-product-farmer/:productId" element={<EditFarmerProduct />} />
+        <Route path="/edit-product-agribusiness/:productId" element={<EditAgriBusinessProduct/>} />
+        <Route path="/ai-reports/" element={<AIReportsPage/>} />
+        <Route path="/user-profile/:userId/" element={<UserProfile/>} />
+        <Route path="/negotiations/" element={<NegotiationsPage/>} />
+        <Route path="/order-history/:userId" element={<OrderHistoryPage/>} />
+        <Route path="/notifications" element={<NotificationsPage/>} />
+        <Route path="/saved-products" element={<SavedProductsPage />} />
       </Routes>
 
       {showFooter && <Footer />}
