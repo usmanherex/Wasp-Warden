@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card2';
 import { Camera, ArrowLeft, Loader2 } from 'lucide-react';
+import { Alert, AlertDescription } from '../components/ui/Alert';
 
 const EditFarmerProduct = () => {
   const { productId } = useParams();
@@ -9,37 +10,51 @@ const EditFarmerProduct = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
+  const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState('');
 
   // Product state
   const [product, setProduct] = useState({
-    title: '',
-    description: '',
-    price: '',
-    quantity: '',
-    minBulkAmount: '',
-    image: ''
+    itemName: '',
+    itemDescription: '',
+    itemPrice: '',
+    quantityAvailable: '',
+    minimumBulkAmount: '',
+    image: '',
+    category: '',
+    metricSystem: ''
   });
 
-  // Simulated data fetch - replace with your actual API call
   useEffect(() => {
     const fetchProduct = async () => {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Dummy data - replace with actual API call
-      const dummyProduct = {
-        id: productId,
-        title: "Organic Tomatoes",
-        description: "Fresh, locally grown organic tomatoes. Perfect for salads and cooking.",
-        price: "4.99",
-        quantity: "150",
-        minBulkAmount: "10",
-        image: "/api/placeholder/400/300"
-      };
-      
-      setProduct(dummyProduct);
-      setImagePreview(dummyProduct.image);
-      setIsLoading(false);
+      try {
+        const response = await fetch(`http://localhost:5000/farmer/products/${productId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          const productData = data.product;
+          setProduct({
+            itemName: productData.itemName,
+            itemDescription: productData.itemDescription,
+            itemPrice: productData.itemPrice,
+            quantityAvailable: productData.quantityAvailable,
+            minimumBulkAmount: productData.minimumBulkAmount,
+            category: productData.category,
+            metricSystem: productData.metricSystem,
+            image: productData.itemImage
+          });
+          
+          if (productData.itemImage) {
+            setImagePreview(`data:image/jpeg;base64,${productData.itemImage}`);
+          }
+        } else {
+          setError(data.message);
+        }
+      } catch (err) {
+        setError('Failed to fetch product details');
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     fetchProduct();
@@ -61,7 +76,7 @@ const EditFarmerProduct = () => {
         setImagePreview(reader.result);
         setProduct(prev => ({
           ...prev,
-          image: file
+          image: reader.result
         }));
       };
       reader.readAsDataURL(file);
@@ -71,15 +86,37 @@ const EditFarmerProduct = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Add your actual update API call here
-    console.log('Updated product:', product);
-    
-    setIsSubmitting(false);
-    navigate('/manage-products', { replace: true });
+    setError(null);
+    setSuccessMessage('');
+    const user = JSON.parse(localStorage.getItem('user'));
+ 
+    try {
+      const response = await fetch(`http://localhost:5000/farmer/products/${productId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...product,
+          userId: user.userId // Assuming you store userId in localStorage
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setSuccessMessage(data.message);
+        setTimeout(() => {
+          navigate('/manage-products', { replace: true });
+        }, 2000);
+      } else {
+        setError(data.message);
+      }
+    } catch (err) {
+      setError('Failed to update product');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (isLoading) {
@@ -96,7 +133,6 @@ const EditFarmerProduct = () => {
   return (
     <div className="min-h-screen bg-green-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
-        {/* Back button */}
         <button
           onClick={() => navigate('/manage-products')}
           className="mb-6 flex items-center text-green-600 hover:text-green-700 transition-colors duration-200"
@@ -105,9 +141,21 @@ const EditFarmerProduct = () => {
           Back to Products
         </button>
 
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {successMessage && (
+          <Alert className="mb-4 bg-green-100 text-green-800">
+            <AlertDescription>{successMessage}</AlertDescription>
+          </Alert>
+        )}
+
         <Card>
           <CardHeader className="bg-green-600 text-white rounded-t-lg">
-            <CardTitle>Edit Product - {product.title}</CardTitle>
+            <CardTitle>Edit Product - {product.itemName}</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6 py-4">
@@ -160,8 +208,8 @@ const EditFarmerProduct = () => {
                     <input
                       type="number"
                       step="0.01"
-                      name="price"
-                      value={product.price}
+                      name="itemPrice"
+                      value={product.itemPrice}
                       onChange={handleInputChange}
                       className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                       required
@@ -174,8 +222,8 @@ const EditFarmerProduct = () => {
                     </label>
                     <input
                       type="number"
-                      name="quantity"
-                      value={product.quantity}
+                      name="quantityAvailable"
+                      value={product.quantityAvailable}
                       onChange={handleInputChange}
                       className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                       required
@@ -188,8 +236,8 @@ const EditFarmerProduct = () => {
                     </label>
                     <input
                       type="number"
-                      name="minBulkAmount"
-                      value={product.minBulkAmount}
+                      name="minimumBulkAmount"
+                      value={product.minimumBulkAmount}
                       onChange={handleInputChange}
                       className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                       required
@@ -202,8 +250,8 @@ const EditFarmerProduct = () => {
                     Product Description
                   </label>
                   <textarea
-                    name="description"
-                    value={product.description}
+                    name="itemDescription"
+                    value={product.itemDescription}
                     onChange={handleInputChange}
                     rows="4"
                     className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"

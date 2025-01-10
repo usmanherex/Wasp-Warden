@@ -25,7 +25,7 @@ app.config['SECRET_KEY'] = 'waspxxx'
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 db = WardernDatabase(
-    server='DESKTOP-6HS4LFD\\SQLEXPRESS', 
+    server='DEADSEC', 
     database='WaspWardenDB',
     #Username and Password will be used when db is not local
     username='your_username', 
@@ -497,6 +497,244 @@ def reset_password(token):
     except Exception as e:
         return jsonify({'message': str(e)}), 500
     
+@app.route('/farmer-products/create', methods=['POST'])
+def create_product():
+    try:
+        data = request.json
+        
+        # Validate user is logged in and is a farmer
+        if not data.get('userId'):
+            return jsonify({
+                'success': False,
+                'message': 'User not logged in'
+            }), 401
+        
+        if data.get('userType') != 'Farmer':
+            return jsonify({
+                'success': False,
+                'message': 'Only farmers can create products'
+            }), 403
 
+        # Validate required fields
+        required_fields = ['title', 'category', 'description', 'price', 
+                         'metric', 'quantity', 'minimumBulk']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({
+                    'success': False,
+                    'message': f'Missing required field: {field}'
+                }), 400
+
+        # Create product with item
+        success, message = db.create_product_with_item({
+            'userId': data['userId'],
+            'title': data['title'],
+            'description': data['description'],
+            'category': data['category'],
+            'price': float(data['price']),
+            'metric': data['metric'],
+            'quantity': int(data['quantity']),
+            'minimumBulk': int(data['minimumBulk']),
+            'image': data.get('image')
+        })
+
+        if success:
+            return jsonify({
+                'success': True,
+                'message': message
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': f'Failed to create product: {message}'
+            }), 500
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Server error: {str(e)}'
+        }), 500
+    
+@app.route('/farmer-products/<int:farmer_id>', methods=['GET'])
+def get_farmer_products(farmer_id):
+    success, result = db.get_farmer_products(farmer_id)
+    if success:
+        return jsonify({
+            'success': True,
+            'products': result
+        })
+    return jsonify({
+        'success': False,
+        'message': str(result)
+    }), 500
+
+@app.route('/farmer/products/<int:product_id>', methods=['GET'])
+def get_product_details(product_id):
+    success, result = db.get_product_details(product_id)
+    if success:
+        return jsonify({
+            'success': True,
+            'product': result
+        })
+    return jsonify({
+        'success': False,
+        'message': str(result)
+    }), 404 if result == "Product not found" else 500
+
+@app.route('/farmer/products/<int:product_id>', methods=['PUT'])
+def update_product(product_id):
+    # Verify that the product belongs to the requesting farmer
+    success, product = db.get_product_details(product_id)
+    if not success:
+        return jsonify({
+            'success': False,
+            'message': 'Product not found'
+        }), 404
+    
+    if product['ownerId'] != request.json.get('userId'):
+        return jsonify({
+            'success': False,
+            'message': 'Unauthorized to modify this product'
+        }), 403
+    
+    success, message = db.update_product(product_id, request.json)
+    if success:
+        return jsonify({
+            'success': True,
+            'message': message
+        })
+    return jsonify({
+        'success': False,
+        'message': str(message)
+    }), 500
+
+@app.route('/farmer/products/<int:product_id>', methods=['DELETE'])
+def delete_product(product_id):
+    # Verify that the product belongs to the requesting farmer
+    success, product = db.get_product_details(product_id)
+    if not success:
+        return jsonify({
+            'success': False,
+            'message': 'Product not found'
+        }), 404
+    data = request.get_json()
+    user_id = data.get('userId')
+    if product['ownerId'] != int(user_id):
+        return jsonify({
+            'success': False,
+            'message': 'Unauthorized to delete this product'
+        }), 403
+    
+    success, message = db.delete_product(product_id)
+    if success:
+        return jsonify({
+            'success': True,
+            'message': message
+        })
+    return jsonify({
+        'success': False,
+        'message': str(message)
+    }), 500
+
+@app.route('/disease-reports', methods=['POST'])
+def save_report():
+    try:
+        report_data = request.json
+        success, message = db.save_disease_report(report_data)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': message
+            })
+        return jsonify({
+            'success': False,
+            'message': message
+        }), 500
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/disease-reports/user/<int:user_id>', methods=['GET'])
+def get_user_reports(user_id):
+    limit = request.args.get('limit', type=int)
+    success, result = db.get_user_reports(user_id, limit)
+    
+    if success:
+        return jsonify({
+            'success': True,
+            'reports': result
+        })
+    return jsonify({
+        'success': False,
+        'message': str(result)
+    }), 500
+
+@app.route('/disease-reports/<string:report_id>', methods=['GET'])
+def get_report_details(report_id):
+    success, result = db.get_report_details(report_id)
+    
+    if success:
+        return jsonify({
+            'success': True,
+            'report': result
+        })
+    return jsonify({
+        'success': False,
+        'message': str(result)
+    }), 404 if result == "Report not found" else 500
+@app.route('/disease-reports/<report_id>', methods=['DELETE'])
+def delete_report(report_id):
+    try:
+        success, message = db.delete_report(report_id)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Report deleted successfully'
+            })
+        
+        return jsonify({
+            'success': False,
+            'message': message
+        }), 404 if message == "Report not found" else 500
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+@app.route('/users/<user_id>/name', methods=['GET'])
+def get_user_name(user_id):
+    try:
+        query = """
+            SELECT UserName 
+            FROM Users 
+            WHERE UserId = ?
+        """
+        
+        success, result = db.execute_query(query, (user_id,))
+        
+        if success and result:
+            return jsonify({
+                'success': True,
+                'UserName': result[0]
+            
+            })
+        
+        return jsonify({
+            'success': False,
+            'message': 'User not found'
+        }), 404
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+    
 if __name__ == '__main__':
     socketio.run(app, debug=True)

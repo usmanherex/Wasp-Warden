@@ -5,6 +5,7 @@ import { Bell,Heart } from 'lucide-react';
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userType, setUserType] = useState('');
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -14,7 +15,9 @@ const Navbar = () => {
   useEffect(() => {
     // Check if user is logged in by looking for token in localStorage
     const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user'));
     setIsLoggedIn(!!token);
+    setUserType(user?.userType || '');
   
   const mockNotifications = [
     {
@@ -64,25 +67,42 @@ const Navbar = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setIsLoggedIn(false);
+    setUserType('');
     navigate('/login');
   };
   const handleViewAllNotifications = () => {
     setIsNotificationOpen(false); // Close the dropdown
     navigate('/notifications'); // Navigate to notifications page
   };
-  const navigation = [
-    { title: "Home", path: "/home" },
-    { title: "Mart", path: "/mart" },
+  const farmerNavigation = [
+    { title: "Dashboard", path: "/farmer-dashboard" },
     { title: "Marketplace", path: "/marketplace" },
-    { title: "Cart", path: "/cart" },
     { title: "Inbox", path: "/inbox" },
     { title: "My Warden", path: "/my-warden" },
-    { title: "IoT Dashboard", path: "/iot-dashboard" },
-    { title: "My Profile", path: "/profile" },
-    { title: "Contact", path: "/contact" },
-    
-    
+    { title: "IoT Insights", path: "/iot-dashboard" },
+    { title: "Cart", path: "/cart" },
   ];
+
+  const publicNavigation = [
+    { title: "Home", path: "/home" },
+    { title: "Contact", path: "/contact" },
+    { title: "About us", path: "/about-us" },
+  ];
+  //const navigation = [
+   // { title: "Home", path: "/home" },
+  //  { title: "Mart", path: "/mart" },
+  //{ title: "Dashboard", path: "/farmer-dashboard" },
+  //  { title: "Marketplace", path: "/marketplace" },
+ 
+   // { title: "Inbox", path: "/inbox" },
+   // { title: "My Warden", path: "/my-warden" },
+   // { title: "IoT Insights", path: "/iot-dashboard" },
+   // { title: "Cart", path: "/cart" },
+   // { title: "My Profile", path: "/profile" },
+   // { title: "Contact", path: "/contact" },
+    
+    
+  //];
   const formatTime = (date) => {
     const now = new Date();
     const diff = now - date;
@@ -119,67 +139,90 @@ const Navbar = () => {
         </div>
         <div className={`flex-1 pb-3 mt-8 md:block md:pb-0 md:mt-0 ${isMenuOpen ? 'block' : 'hidden'}`}>
           <ul className="justify-end items-center space-y-6 md:flex md:space-x-6 md:space-y-0">
-            {navigation.map((item, idx) => (
-              <li key={idx} className="text-white hover:text-green-200">
-                <Link to={item.path} className="block">
-                {item.icon && item.icon}
-                  {item.title}
-                </Link>
-              </li>
-            ))}
-            <div className="relative" ref={notificationRef}>
-              <button
-                onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-                className="relative p-2 text-white hover:text-green-200"
-              >
-                <Bell size={24} />
-                {unreadCount > 0 && (
-                  <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
-                    {unreadCount}
-                  </span>
-                )}
-              </button>
-              {isNotificationOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg overflow-hidden z-50">
-                  <div className="py-2">
-                    <div className="px-4 py-2 border-b border-gray-200">
-                      <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
-                    </div>
-                    <div className="max-h-96 overflow-y-auto">
-                      {notifications.slice(0, 5).map((notification) => (
-                        <div
-                          key={notification.id}
-                          className={`px-4 py-3 hover:bg-gray-50 transition-colors duration-200 ${
-                            !notification.read ? 'bg-green-50' : ''
-                          }`}
-                        >
-                          <p className="text-sm text-gray-800">{notification.text}</p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {formatTime(notification.timestamp)}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="px-4 py-2 border-t border-gray-200">
-                      <button
-                        onClick={handleViewAllNotifications}
-                        className="block w-full text-center text-sm text-green-600 hover:text-green-700"
-                      >
-                        View all notifications
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-           
-            <div className='space-y-3 items-center gap-x-6 md:flex md:space-y-0'>
-              {!isLoggedIn ? (
-                <li>
-                  <Link to="/login" className="block py-2 px-4 text-center text-white bg-green-700 hover:bg-green-800 rounded-md shadow transition duration-300">
-                    Login
+            {isLoggedIn && userType === 'Farmer' ? (
+              // Farmer navigation items
+              farmerNavigation.map((item, idx) => (
+                <li key={idx} className="text-white hover:text-green-200">
+                  <Link to={item.path} className="block">
+                    {item.title}
                   </Link>
                 </li>
+              ))
+            ) : !isLoggedIn ? (
+              // Public navigation items
+              publicNavigation.map((item, idx) => (
+                <li key={idx} className="text-white hover:text-green-200">
+                  <Link to={item.path} className="block">
+                    {item.title}
+                  </Link>
+                </li>
+              ))
+            ) : null}
+
+            {/* Notifications - Only show for logged in Farmer */}
+            {isLoggedIn && userType === 'Farmer' && (
+              <div className="relative" ref={notificationRef}>
+                <button
+                  onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                  className="relative p-2 text-white hover:text-green-200"
+                >
+                  <Bell size={24} />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+                {isNotificationOpen && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg overflow-hidden z-50">
+                    <div className="py-2">
+                      <div className="px-4 py-2 border-b border-gray-200">
+                        <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
+                      </div>
+                      <div className="max-h-96 overflow-y-auto">
+                        {notifications.slice(0, 5).map((notification) => (
+                          <div
+                            key={notification.id}
+                            className={`px-4 py-3 hover:bg-gray-50 transition-colors duration-200 ${
+                              !notification.read ? 'bg-green-50' : ''
+                            }`}
+                          >
+                            <p className="text-sm text-gray-800">{notification.text}</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {formatTime(notification.timestamp)}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="px-4 py-2 border-t border-gray-200">
+                        <button
+                          onClick={handleViewAllNotifications}
+                          className="block w-full text-center text-sm text-green-600 hover:text-green-700"
+                        >
+                          View all notifications
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Authentication buttons */}
+            <div className="space-y-3 items-center gap-x-6 md:flex md:space-y-0">
+              {!isLoggedIn ? (
+                <>
+                  <li>
+                    <Link to="/login" className="block py-2 px-4 text-center text-white bg-green-700 hover:bg-green-800 rounded-md shadow transition duration-300">
+                      Login
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/signup" className="block py-2 px-4 text-center text-white bg-green-700 hover:bg-green-800 rounded-md shadow transition duration-300">
+                      Sign Up
+                    </Link>
+                  </li>
+                </>
               ) : (
                 <li>
                   <button 
@@ -191,7 +234,6 @@ const Navbar = () => {
                 </li>
               )}
             </div>
-         
           </ul>
         </div>
       </div>

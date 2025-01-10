@@ -44,7 +44,7 @@ const LoginPage = () => {
 
       localStorage.setItem('user', JSON.stringify(response.data.user));
       localStorage.setItem('token', response.data.token);
-      navigate('/home');
+      navigate('/farmer-dashboard');
     } catch (err) {
       setError(
         err.response?.data?.message ||
@@ -60,7 +60,9 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-green-400 to-blue-500">
+<div className="flex min-h-screen bg-gradient-to-br from-green-600 to-green-500">
+
+
       <Link
         to="/home"
         className="absolute top-4 left-4 flex items-center text-white hover:text-gray-200 transition-colors"
@@ -72,8 +74,8 @@ const LoginPage = () => {
       <div className="m-auto bg-white rounded-xl shadow-xl overflow-hidden max-w-md w-full">
         <div className="p-8">
           <div className="text-center mb-8">
-            <img src={Image} alt="Logo" className="mx-auto mb-4" style={{ width: '100px', height: 'auto' }} />
-            <h2 className="text-3xl font-bold text-green-800">Log in to your account</h2>
+            <img src={Image} alt="Logo" className="mx-auto mb-4" style={{ width: '150px', height: 'auto' }} />
+            <h2 className="text-3xl font-bold text-green-800">Welcome Back!</h2>
           </div>
 
           {error && (
@@ -163,7 +165,7 @@ const LoginPage = () => {
                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={loading}
               >
-                {loading ? 'Signing in...' : 'Sign in'}
+                {loading ? 'Logging in...' : 'Login'}
               </button>
             </div>
           </form>

@@ -26,6 +26,8 @@ import NegotiationsPage from './pages/Negotiations';
 import OrderHistoryPage from './pages/OrderHistory';
 import NotificationsPage from './pages/Notifications';
 import SavedProductsPage from './pages/SavedProducts';
+import Dashboard from './pages/FarmerDashboard';
+import PendingOrders from './pages/PendingOrders';
 
 
 const AppContent = () => {
@@ -72,6 +74,8 @@ const showNavbar = !['/login', '/signup','/forgot-password', '/reset-password'].
         <Route path="/order-history/:userId" element={<OrderHistoryPage/>} />
         <Route path="/notifications" element={<NotificationsPage/>} />
         <Route path="/saved-products" element={<SavedProductsPage />} />
+        <Route path="/farmer-dashboard" element={<Dashboard />} />
+        <Route path="/pending-orders" element={<PendingOrders />} />
       </Routes>
 
       {showFooter && <Footer />}

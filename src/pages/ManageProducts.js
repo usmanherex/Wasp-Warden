@@ -1,65 +1,53 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Edit2, Trash2, Package } from 'lucide-react';
+import { Alert, AlertDescription } from '../components/ui/Alert';
 
 const ManageProducts = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [products, setProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Dummy data - replace with your actual data
-  const [products] = useState([
-    {
-      id: 1,
-      title: "Organic Tomatoes",
-      price: 4.99,
-      stock: 150,
-      image: "/api/placeholder/300/200",
-      category: "Vegetables",
-      type: "farmer"
-    },
-    {
-      id: 2,
-      title: "Fresh Apples",
-      price: 2.99,
-      stock: 200,
-      image: "/api/placeholder/300/200",
-      category: "Fruits",
-      type: "farmer"
-    },
-    {
-      id: 3,
-      title: "Tractor XL-2000",
-      price: 45000,
-      stock: 5,
-      image: "/api/placeholder/300/200",
-      category: "Machine",
-      type: "agribusiness"
-    },
-    {
-      id: 4,
-      title: "Organic Fertilizer",
-      price: 29.99,
-      stock: 75,
-      image: "/api/placeholder/300/200",
-      category: "Chemical",
-      type: "agribusiness"
-    },
-    {
-      id: 5,
-      title: "Sweet Corn",
-      price: 3.49,
-      stock: 300,
-      image: "/api/placeholder/300/200",
-      category: "Vegetables",
-      type: "farmer"
+  // Fetch products when component mounts
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      const user = JSON.parse(localStorage.getItem('user'));
+      const userId = user.userId;
+      const userType = user.userType;
+      if (!userId) {
+        throw new Error('User not logged in');
+      }
+
+      const response = await fetch(`http://localhost:5000/farmer-products/${userId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch products');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        setProducts(data.products);
+      } else {
+        throw new Error(data.message || 'Failed to fetch products');
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
     }
-  ]);
+  };
 
   // Filter products based on search term
+  console.log(products);
   const filteredProducts = products.filter(product =>
-    product.title.toLowerCase().includes(searchTerm.toLowerCase())
+    product.itemName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleEdit = (productId) => {
@@ -71,12 +59,41 @@ const ManageProducts = () => {
     setShowDeleteModal(true);
   };
 
-  const confirmDelete = () => {
-    // Implement delete functionality here
-    console.log('Deleting product:', selectedProduct.id);
-    setShowDeleteModal(false);
-    setSelectedProduct(null);
+  const confirmDelete = async () => {
+    const user = JSON.parse(localStorage.getItem('user'));
+    const userId = user.userId;
+    
+    try {
+      const response = await fetch(`http://localhost:5000/farmer/products/${selectedProduct.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // Remove the deleted product from state
+        setProducts(products.filter(p => p.id !== selectedProduct.id));
+        setShowDeleteModal(false);
+        setSelectedProduct(null);
+      } else {
+        throw new Error(data.message || 'Failed to delete product');
+      }
+    } catch (err) {
+      setError(err.message);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-green-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-green-50 py-8 px-4 sm:px-6 lg:px-8">
@@ -86,6 +103,15 @@ const ManageProducts = () => {
           <h1 className="text-3xl font-bold text-gray-900">Manage Products</h1>
           <p className="mt-2 text-gray-600">View and manage all your listed products</p>
         </div>
+
+        {/* Error Alert */}
+        {error && (
+          <Alert className="mb-6 bg-red-50 border-red-500">
+            <AlertDescription className="text-red-700">
+              {error}
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Search and Stats Section */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
@@ -112,7 +138,8 @@ const ManageProducts = () => {
               </div>
               <div className="px-4 py-2 bg-blue-100 rounded-md">
                 <span className="text-blue-800 font-medium">
-                  {products.filter(p => p.stock > 0).length}
+                  {products.filter(p => p.minimumBulkAmount
+ > 0).length}
                 </span>
                 <span className="ml-1 text-blue-600">In Stock</span>
               </div>
@@ -129,11 +156,19 @@ const ManageProducts = () => {
             >
               {/* Product Image */}
               <div className="relative h-48 bg-gray-200">
-                <img
-                  src={product.image}
-                  alt={product.title}
-                  className="w-full h-full object-cover"
-                />
+                {product.itemImage ? (
+                  <img
+                    src={`data:image/jpeg;base64,${product.itemImage}`}
+                    alt={product.title}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <img
+                    src="/api/placeholder/300/200"
+                    alt={product.title}
+                    className="w-full h-full object-cover"
+                  />
+                )}
                 <div className="absolute top-2 right-2 bg-white px-2 py-1 rounded-md text-sm font-medium text-gray-600">
                   {product.category}
                 </div>
@@ -142,18 +177,18 @@ const ManageProducts = () => {
               {/* Product Details */}
               <div className="p-4">
                 <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                  {product.title}
+                  {product.itemName}
                 </h3>
                 <div className="flex justify-between items-center mb-4">
                   <div className="text-2xl font-bold text-green-600">
-                    ${product.price.toFixed(2)}
+                    ${product.itemPrice.toFixed(2)}
                   </div>
                   <div className="text-sm">
                     <span className="text-gray-500">Stock:</span>
                     <span className={`ml-1 font-medium ${
-                      product.stock > 0 ? 'text-green-600' : 'text-red-600'
+                      product.quantityAvailable > 0 ? 'text-green-600' : 'text-red-600'
                     }`}>
-                      {product.stock}
+                      {product.quantityAvailable}
                     </span>
                   </div>
                 </div>
@@ -199,7 +234,7 @@ const ManageProducts = () => {
                 Delete Product
               </h3>
               <p className="text-gray-600 mb-4">
-                Are you sure you want to delete "{selectedProduct.title}"? This action cannot be undone.
+                Are you sure you want to delete "{selectedProduct.itemName}"? This action cannot be undone.
               </p>
               <div className="flex justify-end gap-4">
                 <button

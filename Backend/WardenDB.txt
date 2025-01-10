@@ -14,7 +14,6 @@ CREATE TABLE Users (
     UserType VARCHAR(20) CHECK (UserType IN ('Consumer', 'Farmer', 'Agri-Business')) NOT NULL,
     RegistrationDate DATE DEFAULT GETDATE()
 );
-
 CREATE TABLE Consumers (
     ConsumerID INT IDENTITY(1,1) PRIMARY KEY,
     UserId INT NOT NULL, -- FK to Users
@@ -22,7 +21,6 @@ CREATE TABLE Consumers (
     ConsumerType VARCHAR(20) CHECK (ConsumerType IN ('Individual', 'Corporate')) NOT NULL,
     FOREIGN KEY (UserId) REFERENCES Users(UserId) ON DELETE CASCADE
 );
-
 CREATE TABLE AgriBusiness (
     AgriBusinessID INT IDENTITY(1,1) PRIMARY KEY,
     UserId INT NOT NULL, -- FK to Users
@@ -32,7 +30,6 @@ CREATE TABLE AgriBusiness (
     BusinessRegistrationNumber VARCHAR(50) UNIQUE NULL,
     FOREIGN KEY (UserId) REFERENCES Users(UserId) ON DELETE CASCADE
 );
-
 CREATE TABLE Farmers (
     FarmerID INT IDENTITY(1,1) PRIMARY KEY,
     UserId INT NOT NULL, -- FK to Users
@@ -60,3 +57,90 @@ CREATE TABLE Messages (
     FileUrl VARCHAR(MAX),
     Time_Stamp DATETIME DEFAULT GETDATE()
 )
+-- Create Category Table (since it's referenced by Product table)
+CREATE TABLE Categories (
+    categoryID INT IDENTITY(1,1) PRIMARY KEY,
+    categoryName VARCHAR(100) NOT NULL,
+    metricSystem VARCHAR(50) NOT NULL,
+  
+);
+
+-- Create Items Table
+CREATE TABLE Items (
+    itemID INT IDENTITY(1,1) PRIMARY KEY,
+    ownerID INT  NOT NULL,
+    itemName VARCHAR(100) NOT NULL,
+    itemPrice DECIMAL(10,2) NOT NULL CHECK (itemPrice >= 0),
+    itemRating FLOAT CHECK (itemRating >= 0 AND itemRating <= 5),
+    itemDescription TEXT,
+    itemCreationDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    salePercentage FLOAT CHECK (salePercentage >= 0 AND salePercentage <= 100),
+	quantityAvailable INT NOT NULL CHECK (quantityAvailable >= 0),
+    itemImage VARBINARY(MAX),
+);
+
+-- Create Products Table
+CREATE TABLE Products (
+    productID  PRIMARY KEY,
+    minimumBulkAmount INT NOT NULL CHECK (minimumBulkAmount >= 0),
+    categoryID INT NOT NULL,
+    );
+
+  -- First, create a sequence for the report counter
+CREATE SEQUENCE report_counter_seq
+    START WITH 1
+    INCREMENT BY 1;
+
+-- Create the reports table
+CREATE TABLE DiseaseReports (
+    reportID VARCHAR(20) PRIMARY KEY,
+	userID INT ,
+    timestamp DATETIME NOT NULL,
+    modelName VARCHAR(100) NOT NULL,
+    detectedIssue VARCHAR(100) NOT NULL,
+    confidence DECIMAL(5,2) NOT NULL CHECK (confidence >= 0 AND confidence <= 100),
+    severity VARCHAR(20) NOT NULL,
+    imageData VARBINARY(MAX),
+    recommendations TEXT NOT NULL,
+    preventiveMeasures TEXT NOT NULL,
+    treatment VARCHAR(255) NOT NULL,
+
+);
+
+-- Create a trigger for automatic reportID generation
+CREATE TRIGGER trg_GenerateReportID
+ON DiseaseReports
+INSTEAD OF INSERT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    INSERT INTO DiseaseReports (
+        reportID,
+		userID,
+        timestamp,
+        modelName,
+        detectedIssue,
+        confidence,
+        severity,
+        imageData,
+        recommendations,
+        preventiveMeasures,
+        treatment
+    )
+    SELECT 
+        'RPT-' + CAST(YEAR(i.timestamp) AS VARCHAR(4)) + '-' + 
+        RIGHT('000' + CAST(NEXT VALUE FOR report_counter_seq AS VARCHAR(3)), 3),
+		i.userID,
+        i.timestamp,
+        i.modelName,
+        i.detectedIssue,
+        i.confidence,
+        i.severity,
+        i.imageData,
+        i.recommendations,
+        i.preventiveMeasures,
+        i.treatment
+    FROM inserted i;
+END;
+

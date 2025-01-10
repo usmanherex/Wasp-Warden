@@ -1,10 +1,22 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card2';
 import { Camera } from 'lucide-react';
+import { Alert, AlertDescription } from '../components/ui/Alert';
 
 const CreateProduct = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [alert, setAlert] = useState({ show: false, message: '', type: 'success' });
+  const [formData, setFormData] = useState({
+    title: '',
+    category: '',
+    description: '',
+    price: '',
+    metric: '',
+    quantity: '',
+    minimumBulk: '',
+    image: null
+  });
 
   const categories = [
     'Vegetables',
@@ -27,24 +39,87 @@ const CreateProduct = () => {
     'Milliliters (mL)'
   ];
 
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
+        setFormData(prev => ({
+          ...prev,
+          image: reader.result
+        }));
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    // Simulate API call
-    setTimeout(() => {
+    
+    try {
+      // Assuming you have user info stored in localStorage or context
+      const user = JSON.parse(localStorage.getItem('user'));
+      const userId = user.userId;
+      const userType = user.userType;
+
+      const response = await fetch('http://localhost:5000/farmer-products/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          userId,
+          userType
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setAlert({
+          show: true,
+          message: data.message,
+          type: 'success'
+        });
+        // Reset form
+        setFormData({
+          title: '',
+          category: '',
+          description: '',
+          price: '',
+          metric: '',
+          quantity: '',
+          minimumBulk: '',
+          image: null
+        });
+        setImagePreview(null);
+      } else {
+        setAlert({
+          show: true,
+          message: data.message,
+          type: 'error'
+        });
+      }
+    } catch (error) {
+      setAlert({
+        show: true,
+        message: 'An error occurred while creating the product. Please try again.'+error,
+        type: 'error'
+      });
+    } finally {
       setIsSubmitting(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -57,6 +132,14 @@ const CreateProduct = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
+            {alert.show && (
+              <Alert className={`mb-6 ${alert.type === 'success' ? 'bg-green-50 border-green-500' : 'bg-red-50 border-red-500'}`}>
+                <AlertDescription className={alert.type === 'success' ? 'text-green-700' : 'text-red-700'}>
+                  {alert.message}
+                </AlertDescription>
+              </Alert>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Image Upload Section */}
               <div className="space-y-2">
@@ -73,7 +156,10 @@ const CreateProduct = () => {
                       />
                       <button
                         type="button"
-                        onClick={() => setImagePreview(null)}
+                        onClick={() => {
+                          setImagePreview(null);
+                          setFormData(prev => ({ ...prev, image: null }));
+                        }}
                         className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
                       >
                         ×
@@ -104,6 +190,9 @@ const CreateProduct = () => {
                   </label>
                   <input
                     type="text"
+                    name="title"
+                    value={formData.title}
+                    onChange={handleInputChange}
                     className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                     required
                   />
@@ -114,6 +203,9 @@ const CreateProduct = () => {
                     Category
                   </label>
                   <select
+                    name="category"
+                    value={formData.category}
+                    onChange={handleInputChange}
                     className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                     required
                   >
@@ -131,6 +223,9 @@ const CreateProduct = () => {
                     Product Description
                   </label>
                   <textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
                     rows="3"
                     className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                     required
@@ -147,6 +242,9 @@ const CreateProduct = () => {
                     </div>
                     <input
                       type="number"
+                      name="price"
+                      value={formData.price}
+                      onChange={handleInputChange}
                       step="0.01"
                       className="pl-7 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                       required
@@ -159,6 +257,9 @@ const CreateProduct = () => {
                     Metric System
                   </label>
                   <select
+                    name="metric"
+                    value={formData.metric}
+                    onChange={handleInputChange}
                     className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                     required
                   >
@@ -177,6 +278,9 @@ const CreateProduct = () => {
                   </label>
                   <input
                     type="number"
+                    name="quantity"
+                    value={formData.quantity}
+                    onChange={handleInputChange}
                     min="0"
                     className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                     required
@@ -189,6 +293,9 @@ const CreateProduct = () => {
                   </label>
                   <input
                     type="number"
+                    name="minimumBulk"
+                    value={formData.minimumBulk}
+                    onChange={handleInputChange}
                     min="1"
                     className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                     required

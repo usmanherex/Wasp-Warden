@@ -1,4 +1,5 @@
 from base64 import b64encode
+import base64
 from datetime import datetime
 from io import BytesIO
 import pyodbc
@@ -339,5 +340,455 @@ class WardernDatabase:
             
         finally:
             cursor.close()
-            conn.close()        
+            conn.close()      
+    def get_or_create_category(self, category_name, metric_system):
+        """Get existing category ID or create new one if doesn't exist"""
+        try:
+            with pyodbc.connect(self.conn_str) as conn:
+                cursor = conn.cursor()
+                
+                # Check if category with this metric exists
+                cursor.execute("""
+                    SELECT categoryID 
+                    FROM Categories 
+                    WHERE categoryName = ? AND metricSystem = ?
+                """, (category_name, metric_system))
+                
+                result = cursor.fetchone()
+                
+                if result:
+                    return result[0]
+                
+                # If not exists, create new category
+                cursor.execute("""
+                    INSERT INTO Categories (categoryName, metricSystem)
+                    OUTPUT INSERTED.categoryID
+                    VALUES (?, ?)
+                """, (category_name, metric_system))
+                
+                new_id = cursor.fetchone()[0]
+                conn.commit()
+                return new_id
+                
+        except Exception as e:
+            print(f"Error in get_or_create_category: {str(e)}")
+            raise
+
+    def create_product_with_item(self, product_data):
+        """Create a new item and its associated product"""
+        try:
+            with pyodbc.connect(self.conn_str) as conn:
+                cursor = conn.cursor()
+                
+                # First get or create category
+                category_id = self.get_or_create_category(
+                    product_data['category'],
+                    product_data['metric']
+                )
+                
+                # Convert base64 image to binary if present
+                image_binary = None
+                if product_data.get('image'):
+                    # Remove data:image/jpeg;base64, prefix if present
+                    image_base64 = product_data['image'].split(',')[-1]
+                    image_binary = base64.b64decode(image_base64)
+
+                # Insert into Items table first
+                cursor.execute("""
+                    INSERT INTO Items (
+                        ownerID,
+                        itemName,
+                        itemPrice,
+                        itemDescription,
+                        quantityAvailable,
+                        itemImage,
+                        itemRating,
+                        salePercentage
+                    ) 
+                    OUTPUT INSERTED.itemID
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    product_data['userId'],
+                    product_data['title'],
+                    product_data['price'],
+                    product_data['description'],
+                    product_data['quantity'],
+                    image_binary,
+                    0,  # Initial rating
+                    0   # Initial sale percentage
+                ))
+                
+                item_id = cursor.fetchone()[0]
+                
+                # Insert into Products table
+                cursor.execute("""
+                    INSERT INTO Products (
+                        productID,
+                        minimumBulkAmount,
+                        categoryID
+                    ) 
+                    VALUES (?, ?, ?)
+                """, (
+                    item_id,  # Using itemID as productID
+                    product_data['minimumBulk'],
+                    category_id
+                ))
+                
+                conn.commit()
+                return True, "Product created successfully!"
+                
+        except Exception as e:
+            print(f"Error in create_product_with_item: {str(e)}")
+            return False, str(e)  
+        
+    def get_farmer_products(self, farmer_id):
+        """Fetch all products for a specific farmer"""
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                query = """
+                    SELECT 
+                        i.itemID,
+                        i.itemName,
+                        i.itemPrice,
+                        i.itemDescription,
+                        i.quantityAvailable,
+                        i.itemImage,
+                        i.itemRating,
+                        i.salePercentage,
+                        p.minimumBulkAmount,
+                        c.categoryName,
+                        c.metricSystem
+                    FROM Items i
+                    JOIN Products p ON i.itemID = p.productID
+                    JOIN Categories c ON p.categoryID = c.categoryID
+                    WHERE i.ownerID = ?
+                    ORDER BY i.itemCreationDate DESC
+                """
+                
+                cursor.execute(query, (farmer_id,))
+                products = []
+                
+                for row in cursor.fetchall():
+                    product = {
+                        'id': row[0],
+                        'itemName': row[1],
+                        'itemPrice': float(row[2]),
+                        'itemDescription': row[3],
+                        'quantityAvailable': row[4],
+                        'itemImage': base64.b64encode(row[5]).decode('utf-8') if row[5] else None,
+                        'itemRating': float(row[6]) if row[6] else 0,
+                        'salePercentage': float(row[7]) if row[7] else 0,
+                        'minimumBulkAmount': row[8],
+                        'category': row[9],
+                        'metricSystem': row[10]
+                    }
+                    products.append(product)
+                
+                return True, products
+                
+        except Exception as e:
+            print(f"Error fetching farmer products: {str(e)}")
+            return False, str(e)
+
+    def get_product_details(self, product_id):
+        """Fetch details of a specific product"""
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                query = """
+                    SELECT 
+                        i.itemID,
+                        i.itemName,
+                        i.itemPrice,
+                        i.itemDescription,
+                        i.quantityAvailable,
+                        i.itemImage,
+                        i.ownerID,
+                        p.minimumBulkAmount,
+                        c.categoryName,
+                        c.metricSystem
+                    FROM Items i
+                    JOIN Products p ON i.itemID = p.productID
+                    JOIN Categories c ON p.categoryID = c.categoryID
+                    WHERE i.itemID = ?
+                """
+                
+                cursor.execute(query, (product_id,))
+                row = cursor.fetchone()
+                
+                if not row:
+                    return False, "Product not found"
+                
+                product = {
+                    'id': row[0],
+                    'itemName': row[1],
+                    'itemPrice': float(row[2]),
+                    'itemDescription': row[3],
+                    'quantityAvailable': row[4],
+                    'itemImage': base64.b64encode(row[5]).decode('utf-8') if row[5] else None,
+                    'ownerId': row[6],
+                    'minimumBulkAmount': row[7],
+                    'category': row[8],
+                    'metricSystem': row[9]
+                }
+                
+                return True, product
+                
+        except Exception as e:
+            print(f"Error fetching product details: {str(e)}")
+            return False, str(e)
+
+    def update_product(self, product_id, product_data):
+        """Update an existing product"""
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # First get the category ID
+                category_id = self.get_or_create_category(
+                    product_data['category'],
+                    product_data['metricSystem']
+                )
+                
+                # Convert base64 image to binary if present
+                image_binary = None
+                if product_data.get('image'):
+                    image_base64 = product_data['image'].split(',')[-1]
+                    image_binary = base64.b64decode(image_base64)
+                
+                # Update Items table
+                cursor.execute("""
+                    UPDATE Items 
+                    SET itemName = ?,
+                        itemPrice = ?,
+                        itemDescription = ?,
+                        quantityAvailable = ?,
+                        itemImage = COALESCE(?, itemImage)
+                    WHERE itemID = ?
+                """, (
+                    product_data['itemName'],
+                    product_data['itemPrice'],
+                    product_data['itemDescription'],
+                    product_data['quantityAvailable'],
+                    image_binary,
+                    product_id
+                ))
+                
+                # Update Products table
+                cursor.execute("""
+                    UPDATE Products
+                    SET minimumBulkAmount = ?,
+                        categoryID = ?
+                    WHERE productID = ?
+                """, (
+                    product_data['minimumBulkAmount'],
+                    category_id,
+                    product_id
+                ))
+                
+                conn.commit()
+                return True, "Product updated successfully"
+                
+        except Exception as e:
+            print(f"Error updating product: {str(e)}")
+            return False, str(e)
+
+    def delete_product(self, product_id):
+        """Delete a product"""
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # First delete from Products table (due to foreign key constraint)
+                cursor.execute("DELETE FROM Products WHERE productID = ?", (product_id,))
+                
+                # Then delete from Items table
+                cursor.execute("DELETE FROM Items WHERE itemID = ?", (product_id,))
+                
+                conn.commit()
+                return True, "Product deleted successfully"
+                
+        except Exception as e:
+            print(f"Error deleting product: {str(e)}")
+            return False, str(e)
+    def save_disease_report(self, report_data):
+        """
+        Save a new disease detection report
+        
+        Parameters:
+        report_data (dict): Dictionary containing:
+            - userID: int
+            - modelName: str
+            - detectedIssue: str
+            - confidence: float
+            - severity: str
+            - imageData: str (base64)
+            - recommendations: str
+            - preventiveMeasures: str
+            - treatment: str
+        """
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Convert base64 image to binary if present
+                image_binary = None
+                if report_data.get('imageData'):
+                    if isinstance(report_data['imageData'], str):
+                        image_base64 = report_data['imageData'].split(',')[-1]
+                        image_binary = base64.b64decode(image_base64)
+                    else:
+                        image_binary = report_data['imageData']
+
+                cursor.execute("""
+                    INSERT INTO DiseaseReports (
+                        userID, timestamp, modelName, detectedIssue, 
+                        confidence, severity, imageData, recommendations,
+                        preventiveMeasures, treatment
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    report_data['userID'],
+                    datetime.now(),
+                    report_data['modelName'],
+                    report_data['detectedIssue'],
+                    float(report_data['confidence']),
+                    report_data['severity'],
+                    image_binary,
+                    report_data['recommendations'],
+                    report_data['preventiveMeasures'],
+                    report_data['treatment']
+                ))
+                
+                conn.commit()
+                return True, "Report saved successfully"
+                
+        except Exception as e:
+            print(f"Error saving disease report: {str(e)}")
+            return False, str(e)
+
+    def get_user_reports(self, user_id, limit=None):
+        """
+        Fetch all disease reports for a specific user
+        
+        Parameters:
+        user_id (int): The ID of the user
+        limit (int, optional): Maximum number of reports to return
+        """
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                query = """
+                    SELECT 
+                        reportID,
+                        timestamp,
+                        modelName,
+                        detectedIssue,
+                        confidence,
+                        severity,
+                        imageData,
+                        recommendations,
+                        preventiveMeasures,
+                        treatment
+                    FROM DiseaseReports
+                    WHERE userID = ?
+                    ORDER BY timestamp DESC
+                """
+                
+                if limit:
+                    query += f" TOP {limit}"
+                
+                cursor.execute(query, (user_id,))
+                rows = cursor.fetchall()
+                
+                reports = []
+                for row in rows:
+                    report = {
+                        'reportID': row[0],
+                        'timestamp': row[1].isoformat(),
+                        'modelName': row[2],
+                        'detectedIssue': row[3],
+                        'confidence': float(row[4]),
+                        'severity': row[5],
+                        'imageData': base64.b64encode(row[6]).decode('utf-8') if row[6] else None,
+                        'recommendations': row[7],
+                        'preventiveMeasures': row[8],
+                        'treatment': row[9]
+                    }
+                    reports.append(report)
+                
+                return True, reports
+                
+        except Exception as e:
+            print(f"Error fetching user reports: {str(e)}")
+            return False, str(e)
+
+    def get_report_details(self, report_id):
+        """
+        Fetch details of a specific report
+        
+        Parameters:
+        report_id (str): The ID of the report to fetch
+        """
+        try:
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                cursor.execute("""
+                    SELECT 
+                        reportID,
+                        timestamp,
+                        modelName,
+                        detectedIssue,
+                        confidence,
+                        severity,
+                        imageData,
+                        recommendations,
+                        preventiveMeasures,
+                        treatment
+                    FROM DiseaseReports
+                    WHERE reportID = ?
+                """, (report_id,))
+                
+                row = cursor.fetchone()
+                if not row:
+                    return False, "Report not found"
+                
+                report = {
+                    'reportID': row[0],
+                    'timestamp': row[1].isoformat(),
+                    'modelName': row[2],
+                    'detectedIssue': row[3],
+                    'confidence': float(row[4]),
+                    'severity': row[5],
+                    'imageData': base64.b64encode(row[6]).decode('utf-8') if row[6] else None,
+                    'recommendations': row[7],
+                    'preventiveMeasures': row[8],
+                    'treatment': row[9]
+                }
+                
+                return True, report
+                
+        except Exception as e:
+            print(f"Error fetching report details: {str(e)}")
+            return False, str(e) 
+        
+    def delete_report(self, report_id):
+        try:
+            # First check if report exists
+            with self._get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # First delete from Products table (due to foreign key constraint)
+                cursor.execute("DELETE FROM DiseaseReports WHERE ReportId = ?",(report_id,))
+                conn.commit()
+                return True, "Report deleted successfully"
             
+        except Exception as e:
+            print(f"Error deleting report: {str(e)}")
+            return False, str(e)  
+
+   
