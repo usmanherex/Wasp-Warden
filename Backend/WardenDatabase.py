@@ -25,11 +25,14 @@ class WardernDatabase:
     def _get_connection(self):
         """Establish a database connection."""
         return pyodbc.connect(self.conn_str)
-
+    
+    
+            
     def register_user(self, user_data, additional_data, user_type):
         conn = self._get_connection()
         cursor = conn.cursor()
-
+        print(user_data)
+        print(additional_data)
         try:
             cursor.execute("""
                 INSERT INTO Users 
@@ -64,7 +67,7 @@ class WardernDatabase:
                     additional_data.get('associatedCompany', '')
                 ))
             
-            elif user_type == 'Agri-Business':
+            elif user_type == 'Agri-business':
                 cursor.execute("""
                     INSERT INTO AgriBusiness 
                     (UserId, AgriBusinessName, BusinessDescription, BusinessType, BusinessRegistrationNumber) 
@@ -440,7 +443,386 @@ class WardernDatabase:
         except Exception as e:
             print(f"Error in create_product_with_item: {str(e)}")
             return False, str(e)  
-        
+    # Database connection class method
+    def create_agribusiness_item(self, product_data):
+   
+     try:
+        with pyodbc.connect(self.conn_str) as conn:
+            cursor = conn.cursor()
+            
+            
+           
+            image_binary = None
+            if product_data.get('image'):
+                image_base64 = product_data['image'].split(',')[-1]
+                image_binary = base64.b64decode(image_base64)
+
+            # Begin transaction
+            cursor.execute("BEGIN TRANSACTION")
+            
+            try:
+                # Insert into Items table first
+                cursor.execute("""
+                    INSERT INTO Items (
+                        ownerID,
+                        itemName,
+                        itemPrice,
+                        itemDescription,
+                        quantityAvailable,
+                        itemImage,
+                        itemRating,
+                        salePercentage
+                    ) 
+                    OUTPUT INSERTED.itemID
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    product_data['userId'],
+                    product_data['title'],
+                    product_data['price'],
+                    product_data['description'],
+                    product_data['quantityAvailable'],
+                    image_binary,
+                    0,  # Initial rating
+                    0   # Initial sale percentage
+                ))
+                
+                item_id = cursor.fetchone()[0]
+
+                # Insert into specific product type table
+                if product_data['productType'] == 'Machine':
+                    cursor.execute("""
+                        INSERT INTO Machines (
+                            machineID,
+                            machineType,
+                            machineWeight,
+                            powerSource,
+                            warranty
+                  
+                        )
+                        VALUES (?, ?, ?, ?, ?)
+                    """, (
+                        item_id,
+                        product_data['machineType'],
+                        product_data['machineWeight'],
+                        product_data['powerSource'],
+                        product_data['warranty']
+                    ))
+                
+                elif product_data['productType'] == 'Chemical':
+                    cursor.execute("""
+                        INSERT INTO Chemicals (
+                            chemicalID,
+                            metricSystem,
+                            quantity,
+                            chemicalType,
+                            expiryDate,
+                            hazardLevel
+                        )
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    """, (
+                        item_id,
+                        product_data['metricSystem'],
+                        product_data['quantity'],
+                        product_data['chemicalType'],
+                        product_data['expiryDate'],
+                        product_data['hazardLevel']
+                    ))
+                
+                # Commit transaction
+                cursor.execute("COMMIT")
+                return True, "Product created successfully!"
+                
+            except Exception as e:
+                cursor.execute("ROLLBACK")
+                raise e
+                
+     except Exception as e:
+        print(f"Error in create_product_with_item: {str(e)}")
+        return False, str(e)   
+    def get_agribusiness_items(self, user_id):
+     try:
+        with pyodbc.connect(self.conn_str) as conn:
+            cursor = conn.cursor()
+            
+            # First get all items for specific user
+            cursor.execute("""
+                SELECT 
+                    itemID,
+                    ownerID,
+                    itemName,
+                    itemPrice,
+                    itemDescription,
+                    quantityAvailable,
+                    itemImage,
+                    itemRating,
+                    salePercentage
+                FROM Items
+                WHERE ownerID = ?
+            """, (user_id,))
+            
+            items = []
+            for row in cursor.fetchall():
+                # Convert row to dictionary
+                item = {
+                    'itemId': row[0],
+                    'ownerId': row[1],
+                    'title': row[2],
+                    'price': float(row[3]),
+                    'description': row[4],
+                    'quantityAvailable': row[5],
+                    'image': base64.b64encode(row[6]).decode('utf-8') if row[6] else None,
+                    'rating': row[7],
+                    'salePercentage': row[8]
+                }
+                
+                # Check if item exists in Machines table
+                cursor.execute("""
+                    SELECT 
+                        machineType,
+                        machineWeight,
+                        powerSource,
+                        warranty
+                    FROM Machines 
+                    WHERE machineID = ?
+                """, (item['itemId'],))
+                
+                machine_data = cursor.fetchone()
+                
+                if machine_data:
+                    item['productType'] = 'Machine'
+                    item['machineType'] = machine_data[0]
+                    item['machineWeight'] = machine_data[1]
+                    item['powerSource'] = machine_data[2]
+                    item['warranty'] = machine_data[3]
+                else:
+                    # Check if item exists in Chemicals table
+                    cursor.execute("""
+                        SELECT 
+                            metricSystem,
+                            quantity,
+                            chemicalType,
+                            expiryDate,
+                            hazardLevel
+                        FROM Chemicals 
+                        WHERE chemicalID = ?
+                    """, (item['itemId'],))
+                    
+                    chemical_data = cursor.fetchone()
+                    
+                    if chemical_data:
+                        item['productType'] = 'Chemical'
+                        item['metricSystem'] = chemical_data[0]
+                        item['quantity'] = chemical_data[1]
+                        item['chemicalType'] = chemical_data[2]
+                        item['expiryDate'] = chemical_data[3].isoformat() if chemical_data[3] else None
+                        item['hazardLevel'] = chemical_data[4]
+                
+                items.append(item)
+            
+            return True, items
+            
+     except Exception as e:
+        print(f"Error in get_agribusiness_items: {str(e)}")
+        return False, str(e) 
+    def get_agribusiness_product(self, product_id):
+     try:
+        with pyodbc.connect(self.conn_str) as conn:
+            cursor = conn.cursor()
+            
+            # First get basic item information
+            cursor.execute("""
+                SELECT 
+                    itemID,
+                    ownerID,
+                    itemName,
+                    itemPrice,
+                    itemDescription,
+                    quantityAvailable,
+                    itemImage,
+                    itemRating,
+                    salePercentage
+                FROM Items
+                WHERE itemID = ?
+            """, (product_id,))
+            
+            row = cursor.fetchone()
+            if not row:
+                return False, "Product not found"
+                
+            # Convert row to dictionary
+            product = {
+                'itemId': row[0],
+                'ownerId': row[1],
+                'title': row[2],
+                'price': float(row[3]),
+                'description': row[4],
+                'quantityAvailable': row[5],
+                'image': base64.b64encode(row[6]).decode('utf-8') if row[6] else None,
+                'rating': row[7],
+                'salePercentage': row[8]
+            }
+            
+            # Check if item exists in Machines table
+            cursor.execute("""
+                SELECT 
+                    machineType,
+                    machineWeight,
+                    powerSource,
+                    warranty
+                FROM Machines 
+                WHERE machineID = ?
+            """, (product_id,))
+            
+            machine_data = cursor.fetchone()
+            
+            if machine_data:
+                product['productType'] = 'Machine'
+                product['machineType'] = machine_data[0]
+                product['machineWeight'] = machine_data[1]
+                product['powerSource'] = machine_data[2]
+                product['warranty'] = machine_data[3]
+            else:
+                # Check if item exists in Chemicals table
+                cursor.execute("""
+                    SELECT 
+                        metricSystem,
+                        quantity,
+                        chemicalType,
+                        expiryDate,
+                        hazardLevel
+                    FROM Chemicals 
+                    WHERE chemicalID = ?
+                """, (product_id,))
+                
+                chemical_data = cursor.fetchone()
+                
+                if chemical_data:
+                    product['productType'] = 'Chemical'
+                    product['metricSystem'] = chemical_data[0]
+                    product['quantity'] = chemical_data[1]
+                    product['chemicalType'] = chemical_data[2]
+                    product['expiryDate'] = chemical_data[3].isoformat() if chemical_data[3] else None
+                    product['hazardLevel'] = chemical_data[4]
+                else:
+                    return False, "Product type not found"
+            
+            return True, product
+            
+     except Exception as e:
+        print(f"Error in get_agribusiness_product: {str(e)}")
+        return False, str(e)
+    def update_agribusiness_product(self, product_id, data):
+     try:
+        with pyodbc.connect(self.conn_str) as conn:
+            cursor = conn.cursor()
+            image_binary = None
+            if data.get('image'):
+                image_base64 = data['image'].split(',')[-1]
+                image_binary = base64.b64decode(image_base64)
+            # Update Items table first
+            cursor.execute("""
+                UPDATE Items 
+                SET itemName = ?,
+                    itemPrice = ?,
+                    itemDescription = ?,
+                    quantityAvailable = ?,
+                    itemImage = COALESCE(?, itemImage),
+                    salePercentage = ?
+                WHERE itemID = ?
+            """, (
+                data.get('title'),
+                data.get('price'),
+                data.get('description'),
+                data.get('quantityAvailable'),
+                image_binary,
+                data.get('salePercentage', 0),
+                product_id
+            ))
+            
+            # Update specific product type table
+            product_type = data.get('productType')
+            if product_type == 'Machine':
+                cursor.execute("""
+                    UPDATE Machines 
+                    SET machineWeight = ?,
+                        warranty = ?
+                    WHERE machineID = ?
+                """, (
+                    data.get('machineWeight'),
+                    data.get('warranty'),
+                    product_id
+                ))
+            
+            elif product_type == 'Chemical':
+                cursor.execute("""
+                    UPDATE Chemicals 
+                    SET quantity = ?,
+                       
+                        expiryDate = ?
+                    WHERE chemicalID = ?
+                """, (
+                    data.get('quantity'),
+                    data.get('expiryDate'),
+                    product_id
+                ))
+            
+            conn.commit()
+            return True, "Product updated successfully"
+            
+     except Exception as e:
+        print(f"Error in update_agribusiness_product: {str(e)}")
+        return False, str(e)  
+    def delete_agribusiness_product(self, product_id):
+     try:
+        with pyodbc.connect(self.conn_str) as conn:
+            cursor = conn.cursor()
+            
+            # First determine if it's a machine or chemical
+            cursor.execute("""
+                SELECT 1 FROM Machines WHERE machineID = ?
+                UNION ALL
+                SELECT 1 FROM Chemicals WHERE chemicalID = ?
+            """, (product_id, product_id))
+            
+            product_exists = cursor.fetchone()
+            if not product_exists:
+                return False, "Product not found"
+            
+            # Start transaction
+            cursor.execute("BEGIN TRANSACTION")
+            
+            try:
+                # Delete from Machines if exists
+                cursor.execute("""
+                    DELETE FROM Machines 
+                    WHERE machineID = ?
+                """, (product_id,))
+                
+                # Delete from Chemicals if exists
+                cursor.execute("""
+                    DELETE FROM Chemicals 
+                    WHERE chemicalID = ?
+                """, (product_id,))
+                
+                # Finally delete from Items
+                cursor.execute("""
+                    DELETE FROM Items 
+                    WHERE itemID = ?
+                """, (product_id,))
+                
+                # If we got here, commit the transaction
+                cursor.execute("COMMIT TRANSACTION")
+                return True, "Product deleted successfully"
+                
+            except Exception as e:
+                # If anything goes wrong, rollback the transaction
+                cursor.execute("ROLLBACK TRANSACTION")
+                raise e
+            
+     except Exception as e:
+        print(f"Error in delete_agribusiness_product: {str(e)}")
+        return False, str(e)
+     
     def get_farmer_products(self, farmer_id):
         """Fetch all products for a specific farmer"""
         try:
@@ -507,6 +889,7 @@ class WardernDatabase:
                         i.quantityAvailable,
                         i.itemImage,
                         i.ownerID,
+                        i.salePercentage,
                         p.minimumBulkAmount,
                         c.categoryName,
                         c.metricSystem
@@ -530,9 +913,10 @@ class WardernDatabase:
                     'quantityAvailable': row[4],
                     'itemImage': base64.b64encode(row[5]).decode('utf-8') if row[5] else None,
                     'ownerId': row[6],
-                    'minimumBulkAmount': row[7],
-                    'category': row[8],
-                    'metricSystem': row[9]
+                    'salePercentage':row[7],
+                    'minimumBulkAmount': row[8],
+                    'category': row[9],
+                    'metricSystem': row[10]
                 }
                 
                 return True, product
@@ -566,6 +950,7 @@ class WardernDatabase:
                         itemPrice = ?,
                         itemDescription = ?,
                         quantityAvailable = ?,
+                        salePercentage=?,
                         itemImage = COALESCE(?, itemImage)
                     WHERE itemID = ?
                 """, (
@@ -573,6 +958,7 @@ class WardernDatabase:
                     product_data['itemPrice'],
                     product_data['itemDescription'],
                     product_data['quantityAvailable'],
+                    product_data['salePercentage'],
                     image_binary,
                     product_id
                 ))
@@ -804,4 +1190,249 @@ class WardernDatabase:
              return result[0] if result else None
         except Exception as e:
             raise e
-   
+        
+    def get_user_profile(self, user_id):
+     conn = self._get_connection()
+     cursor = conn.cursor()
+    
+     try:
+        # Get user data with all required fields
+        cursor.execute("""
+            SELECT UserId, UserName, FirstName, LastName, Email, Address, 
+                   PhoneNumber, UserType, ProfilePicture, Gender, NationalID,
+                   AccountStatus, RegistrationDate
+            FROM Users 
+            WHERE UserId = ?
+        """, user_id)
+        
+        user_data = cursor.fetchone()
+        if not user_data:
+            return None
+            
+        # Create profile dictionary with all fields
+        user_profile = {
+            'userId': user_data[0],
+            'userName': user_data[1],
+            'firstName': user_data[2],
+            'lastName': user_data[3],
+            'email': user_data[4],
+            'address': user_data[5],
+            'phoneNumber': user_data[6],
+            'userType': user_data[7],
+            'gender': user_data[9],
+            'nationalID': user_data[10],
+            'accountStatus': user_data[11],
+            'registrationDate': user_data[12].strftime('%Y-%m-%d') if user_data[12] else None
+        }
+        
+        # Handle profile picture - convert to base64
+        if user_data[8]:  # ProfilePicture
+            base64_image = base64.b64encode(user_data[8]).decode('utf-8')
+            user_profile['profilePicture'] = f"data:image/jpeg;base64,{base64_image}"
+        else:
+            user_profile['profilePicture'] = None
+        
+        # Get farmer data if applicable
+        if user_profile['userType'] == 'Farmer':
+            cursor.execute("""
+                SELECT FarmAddress, FarmSize, Specialization, FarmYieldCapacity
+                FROM Farmers 
+                WHERE UserId = ?
+            """, user_id)
+            
+            farmer_data = cursor.fetchone()
+            if farmer_data:
+                user_profile.update({
+                    'address': farmer_data[0],
+                    'farmSize': farmer_data[1],
+                    'specialization': farmer_data[2],
+                    'farmYieldCapacity': farmer_data[3]
+                })
+        elif user_profile['userType'] == 'Agri-business':
+            cursor.execute("""
+                SELECT AgriBusinessName, BusinessDescription, BusinessType, 
+                       BusinessRegistrationNumber
+                FROM AgriBusiness 
+                WHERE UserId = ?
+            """, user_id)
+            
+            business_data = cursor.fetchone()
+            if business_data:
+                user_profile.update({
+                    'agriBusinessName': business_data[0],
+                    'businessDescription': business_data[1],
+                    'businessType': business_data[2],
+                    'businessRegistrationNumber': business_data[3]
+                })
+        return user_profile
+        
+     except Exception as e:
+        raise Exception(f"Error fetching user profile: {str(e)}")
+     finally:
+        cursor.close()
+        conn.close()
+
+    def update_user_profile(self, user_id, data):
+     conn = self._get_connection()
+     cursor = conn.cursor()
+    
+     try:
+        # Update user data
+        cursor.execute("""
+            UPDATE Users 
+            SET FirstName = ?,
+                LastName = ?,
+                PhoneNumber = ?,
+                Address = ?
+            WHERE UserId = ?
+        """, (
+            data['firstName'],
+            data['lastName'],
+            data['phoneNumber'],
+            data['address'],
+            user_id
+        ))
+        
+        # Update password if provided
+        if data.get('password'):
+            # In a real application, you should hash the password
+            cursor.execute("""
+                UPDATE Users 
+                SET Password = ?
+                WHERE UserId = ?
+            """, (generate_password_hash(data['password']), user_id))
+        
+        # Update farmer data if applicable
+        if data.get('userType') == 'Farmer':
+            cursor.execute("""
+                UPDATE Farmers 
+                SET FarmSize = ?,
+                    Specialization = ?,
+                    FarmYieldCapacity = ?,
+                    FarmAddress = ?
+                WHERE UserId = ?
+            """, (
+                data.get('farmSize'),
+                data.get('specialization'),
+                data.get('farmYieldCapacity'),
+                data.get('address'),  # Using the same address for farm address
+                user_id
+            ))
+        elif data.get('userType') == 'Agri-business':
+            cursor.execute("""
+                UPDATE AgriBusiness 
+                SET BusinessDescription = ?
+                WHERE UserId = ?
+            """, (
+                data.get('businessDescription'),
+                user_id
+            ))
+        # Update profile picture if provided
+        if data.get('profilePicture'):
+            try:
+                # Remove the data URL prefix if present
+                if 'base64,' in data['profilePicture']:
+                    base64_string = data['profilePicture'].split('base64,')[1]
+                else:
+                    base64_string = data['profilePicture']
+                binary_image = base64.b64decode(base64_string)
+                
+                cursor.execute("""
+                    UPDATE Users
+                    SET ProfilePicture = ?
+                    WHERE UserId = ?
+                """, (binary_image, user_id))
+            except Exception as e:
+                raise Exception(f"Error processing profile picture: {str(e)}")
+        
+        conn.commit()
+        return True
+        
+     except Exception as e:
+        conn.rollback()
+        raise Exception(f"Error updating user profile: {str(e)}")
+     finally:
+        cursor.close()
+        conn.close()
+
+    def initialize_chat(self, user1_id, user2_id):
+     conn = self._get_connection()
+     cursor = conn.cursor()
+    
+     try:
+        # Check if both users exist
+        cursor.execute("""
+            SELECT COUNT(*) 
+            FROM Users 
+            WHERE UserID IN (?, ?)
+        """, (user1_id, user2_id))
+        
+        if cursor.fetchone()[0] != 2:
+            raise Exception("One or both users not found")
+
+        # Check if chat already exists
+        cursor.execute("""
+            SELECT ChatID 
+            FROM Chat 
+            WHERE (User1ID = ? AND User2ID = ?) 
+               OR (User1ID = ? AND User2ID = ?)
+        """, (user1_id, user2_id, user2_id, user1_id))
+        
+        existing_chat = cursor.fetchone()
+        
+        if existing_chat:
+            return {
+                'chatId': existing_chat[0],
+                'message': 'Existing chat found'
+            }
+
+        # Create new chat
+        cursor.execute("""
+            INSERT INTO Chat (User1ID, User2ID, CreatedAt)
+            VALUES (?, ?, ?)
+        """, (user1_id, user2_id, datetime.now()))
+        
+        conn.commit()
+        
+        # Get the new chat ID
+        cursor.execute("SELECT @@IDENTITY")
+        chat_id = cursor.fetchone()[0]
+
+        return {
+            'chatId': chat_id,
+            'message': 'Chat initialized successfully'
+        }
+        
+     except Exception as e:
+        conn.rollback()
+        raise Exception(f"Error initializing chat: {str(e)}")
+     finally:
+        cursor.close()
+        conn.close()
+    def get_chat(self, user1_id, user2_id):
+     conn = self._get_connection()
+     cursor = conn.cursor()
+    
+     try:
+        cursor.execute("""
+            SELECT ChatID, CreatedAt
+            FROM Chat 
+            WHERE (User1ID = ? AND User2ID = ?) 
+               OR (User1ID = ? AND User2ID = ?)
+        """, (user1_id, user2_id, user2_id, user1_id))
+        
+        result = cursor.fetchone()
+        
+        if result:
+            return {
+                'exists': True,
+                'chatId': result[0],
+                'createdAt': result[1].isoformat() if result[1] else None
+            }
+        return None
+        
+     except Exception as e:
+        raise Exception(f"Error checking chat existence: {str(e)}")
+     finally:
+        cursor.close()
+        conn.close()

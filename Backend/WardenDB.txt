@@ -144,3 +144,25 @@ BEGIN
     FROM inserted i;
 END;
 
+-- Create Machines table
+CREATE TABLE Machines (
+    machineID INT  PRIMARY KEY,
+    machineType VARCHAR(100) NOT NULL,
+    machineWeight DECIMAL(10,2) NOT NULL,
+    powerSource VARCHAR(50) NOT NULL,
+    warranty VARCHAR(100),
+    CHECK (machineWeight > 0),
+   
+);
+
+-- Create Chemicals table
+CREATE TABLE Chemicals (
+    chemicalID INT  PRIMARY KEY,
+    metricSystem VARCHAR(20) NOT NULL,
+    quantity DECIMAL(10,2) NOT NULL,
+    chemicalType VARCHAR(100) NOT NULL,
+    expiryDate DATE NOT NULL,
+    hazardLevel VARCHAR(20) NOT NULL
+
+    
+);

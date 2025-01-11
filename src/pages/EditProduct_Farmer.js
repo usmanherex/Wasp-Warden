@@ -39,6 +39,7 @@ const EditFarmerProduct = () => {
             itemPrice: productData.itemPrice,
             quantityAvailable: productData.quantityAvailable,
             minimumBulkAmount: productData.minimumBulkAmount,
+            salePercentage:productData.salePercentage,
             category: productData.category,
             metricSystem: productData.metricSystem,
             image: productData.itemImage
@@ -238,6 +239,19 @@ const EditFarmerProduct = () => {
                       type="number"
                       name="minimumBulkAmount"
                       value={product.minimumBulkAmount}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Sale Percentage
+                    </label>
+                    <input
+                      type="number"
+                      name="salePercentage"
+                      value={product.salePercentage}
                       onChange={handleInputChange}
                       className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                       required

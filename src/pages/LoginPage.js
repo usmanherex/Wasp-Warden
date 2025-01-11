@@ -44,7 +44,12 @@ const LoginPage = () => {
 
       localStorage.setItem('user', JSON.stringify(response.data.user));
       localStorage.setItem('token', response.data.token);
-      navigate('/farmer-dashboard');
+      if(response.data.user.userType==='Farmer')
+         navigate('/farmer-dashboard');
+      else if(response.data.user.userType==='Agri-business')
+      {
+        navigate('/agribusiness-dashboard');
+      }
     } catch (err) {
       setError(
         err.response?.data?.message ||

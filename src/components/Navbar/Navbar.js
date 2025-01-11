@@ -1,7 +1,8 @@
-import React, { useState, useEffect,useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Image from '../../assets/images/ward.png';
-import { Bell,Heart } from 'lucide-react';
+import { Bell, Heart } from 'lucide-react';
+
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -19,50 +20,52 @@ const Navbar = () => {
     setIsLoggedIn(!!token);
     setUserType(user?.userType || '');
   
-  const mockNotifications = [
-    {
-      id: 1,
-      text: "New order #123 has been placed in your mart. Check it out!",
-      timestamp: new Date(Date.now() - 1000 * 60 * 5),
-      read: false
-    },
-    {
-      id: 2,
-      text: "Your IoT device 'Garden Sensor' detected unusual activity.",
-      timestamp: new Date(Date.now() - 1000 * 60 * 30),
-      read: false
-    },
-    {
-      id: 3,
-      text: "Welcome bonus: 20% off on your next purchase in the marketplace!",
-      timestamp: new Date(Date.now() - 1000 * 60 * 60),
-      read: false
-    },
-    {
-      id: 4,
-      text: "Your monthly Warden report is ready. View your statistics now.",
-      timestamp: new Date(Date.now() - 1000 * 60 * 120),
-      read: true
-    },
-    {
-      id: 5,
-      text: "New message from Support regarding your recent inquiry.",
-      timestamp: new Date(Date.now() - 1000 * 60 * 180),
-      read: true
-    }
-  ];
+    const mockNotifications = [
+      {
+        id: 1,
+        text: "New order #123 has been placed in your mart. Check it out!",
+        timestamp: new Date(Date.now() - 1000 * 60 * 5),
+        read: false
+      },
+      {
+        id: 2,
+        text: "Your IoT device 'Garden Sensor' detected unusual activity.",
+        timestamp: new Date(Date.now() - 1000 * 60 * 30),
+        read: false
+      },
+      {
+        id: 3,
+        text: "Welcome bonus: 20% off on your next purchase in the marketplace!",
+        timestamp: new Date(Date.now() - 1000 * 60 * 60),
+        read: false
+      },
+      {
+        id: 4,
+        text: "Your monthly report is ready. View your statistics now.",
+        timestamp: new Date(Date.now() - 1000 * 60 * 120),
+        read: true
+      },
+      {
+        id: 5,
+        text: "New message from Support regarding your recent inquiry.",
+        timestamp: new Date(Date.now() - 1000 * 60 * 180),
+        read: true
+      }
+    ];
 
-  setNotifications(mockNotifications);
-  setUnreadCount(mockNotifications.filter(n => !n.read).length);
-  const handleClickOutside = (event) => {
-    if (notificationRef.current && !notificationRef.current.contains(event.target)) {
-      setIsNotificationOpen(false);
-    }
-  };
+    setNotifications(mockNotifications);
+    setUnreadCount(mockNotifications.filter(n => !n.read).length);
 
-  document.addEventListener('mousedown', handleClickOutside);
-  return () => document.removeEventListener('mousedown', handleClickOutside);
-}, []);
+    const handleClickOutside = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setIsNotificationOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -70,12 +73,15 @@ const Navbar = () => {
     setUserType('');
     navigate('/login');
   };
+
   const handleViewAllNotifications = () => {
-    setIsNotificationOpen(false); // Close the dropdown
-    navigate('/notifications'); // Navigate to notifications page
+    setIsNotificationOpen(false);
+    navigate('/notifications');
   };
+
   const farmerNavigation = [
     { title: "Dashboard", path: "/farmer-dashboard" },
+    { title: "Mart", path: "/mart" },
     { title: "Marketplace", path: "/marketplace" },
     { title: "Inbox", path: "/inbox" },
     { title: "My Warden", path: "/my-warden" },
@@ -83,26 +89,18 @@ const Navbar = () => {
     { title: "Cart", path: "/cart" },
   ];
 
+  const AgribusinessNavigation = [
+    { title: "Dashboard", path: "/agribusiness-dashboard" },
+    { title: "Marketplace", path: "/marketplace" },
+    { title: "Inbox", path: "/inbox" }
+  ];
+
   const publicNavigation = [
     { title: "Home", path: "/home" },
     { title: "Contact", path: "/contact" },
     { title: "About us", path: "/about-us" },
   ];
-  //const navigation = [
-   // { title: "Home", path: "/home" },
-  //  { title: "Mart", path: "/mart" },
-  //{ title: "Dashboard", path: "/farmer-dashboard" },
-  //  { title: "Marketplace", path: "/marketplace" },
- 
-   // { title: "Inbox", path: "/inbox" },
-   // { title: "My Warden", path: "/my-warden" },
-   // { title: "IoT Insights", path: "/iot-dashboard" },
-   // { title: "Cart", path: "/cart" },
-   // { title: "My Profile", path: "/profile" },
-   // { title: "Contact", path: "/contact" },
-    
-    
-  //];
+
   const formatTime = (date) => {
     const now = new Date();
     const diff = now - date;
@@ -112,8 +110,17 @@ const Navbar = () => {
     if (minutes < 1440) return `${Math.floor(minutes/60)}h ago`;
     return `${Math.floor(minutes/1440)}d ago`;
   };
+
+  // Helper function to determine which navigation to use
+  const getNavigation = () => {
+    if (!isLoggedIn) return publicNavigation;
+    if (userType === 'Farmer') return farmerNavigation;
+    if (userType === 'Agri-business') return AgribusinessNavigation;
+    return publicNavigation;
+  };
+
   return (
-    <nav className="bg-green-600 w-full shadow-md">
+    <nav className="bg-green-600 w-full shadow-md sticky top-0 z-10">
       <div className="items-center px-4 max-w-screen-xl mx-auto md:flex md:px-8">
         <div className="flex items-center justify-between py-3 md:py-4 md:block">
           <Link to="/" className="flex items-center">
@@ -139,28 +146,16 @@ const Navbar = () => {
         </div>
         <div className={`flex-1 pb-3 mt-8 md:block md:pb-0 md:mt-0 ${isMenuOpen ? 'block' : 'hidden'}`}>
           <ul className="justify-end items-center space-y-6 md:flex md:space-x-6 md:space-y-0">
-            {isLoggedIn && userType === 'Farmer' ? (
-              // Farmer navigation items
-              farmerNavigation.map((item, idx) => (
-                <li key={idx} className="text-white hover:text-green-200">
-                  <Link to={item.path} className="block">
-                    {item.title}
-                  </Link>
-                </li>
-              ))
-            ) : !isLoggedIn ? (
-              // Public navigation items
-              publicNavigation.map((item, idx) => (
-                <li key={idx} className="text-white hover:text-green-200">
-                  <Link to={item.path} className="block">
-                    {item.title}
-                  </Link>
-                </li>
-              ))
-            ) : null}
+            {getNavigation().map((item, idx) => (
+              <li key={idx} className="text-white hover:text-green-200">
+                <Link to={item.path} className="block">
+                  {item.title}
+                </Link>
+              </li>
+            ))}
 
-            {/* Notifications - Only show for logged in Farmer */}
-            {isLoggedIn && userType === 'Farmer' && (
+            {/* Notifications - Show for both Farmer and Agri-business users */}
+            {isLoggedIn && (userType === 'Farmer' || userType === 'Agri-business') && (
               <div className="relative" ref={notificationRef}>
                 <button
                   onClick={() => setIsNotificationOpen(!isNotificationOpen)}

@@ -28,6 +28,7 @@ import NotificationsPage from './pages/Notifications';
 import SavedProductsPage from './pages/SavedProducts';
 import Dashboard from './pages/FarmerDashboard';
 import PendingOrders from './pages/PendingOrders';
+import AgriDashboard from './pages/AgriBusinessDashboard';
 
 
 const AppContent = () => {
@@ -75,6 +76,7 @@ const showNavbar = !['/login', '/signup','/forgot-password', '/reset-password'].
         <Route path="/notifications" element={<NotificationsPage/>} />
         <Route path="/saved-products" element={<SavedProductsPage />} />
         <Route path="/farmer-dashboard" element={<Dashboard />} />
+        <Route path="/agribusiness-dashboard" element={<AgriDashboard />} />
         <Route path="/pending-orders" element={<PendingOrders />} />
       </Routes>
 

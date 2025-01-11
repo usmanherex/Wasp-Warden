@@ -26,6 +26,7 @@ const SignUpPage = () => {
     
     agriBusiness: {
       businessName: '',
+      businessAddress:'',
       businessDescription: '',
       businessType: '',
       businessRegistrationNumber: ''
@@ -105,6 +106,7 @@ const SignUpPage = () => {
         break;
       case 'agri-business':
         formPayload.append('businessName', formData.agriBusiness.businessName);
+        formPayload.append('businessAddress', formData.agriBusiness.businessAddress);
         formPayload.append('businessDescription', formData.agriBusiness.businessDescription);
         formPayload.append('businessType', formData.agriBusiness.businessType);
         formPayload.append('businessRegistrationNumber', formData.agriBusiness.businessRegistrationNumber);
@@ -134,7 +136,7 @@ const SignUpPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-400 to-blue-500 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-green-600 to-green-500 py-8 px-4">
       <Link 
         to="/home" 
         className="absolute top-4 left-4 flex items-center text-white hover:text-gray-200 transition-colors"
@@ -289,7 +291,14 @@ const SignUpPage = () => {
                     value={formData.agriBusiness.businessName}
                     onChange={handleChange}
                   />
-
+                  <textarea
+                    name="agriBusiness.businessAddress"
+                    placeholder="Business Address"
+                    value={formData.agriBusiness.businessAddress}
+                    onChange={handleChange}
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                    rows="2"
+                  /> 
                   <textarea
                     name="agriBusiness.businessDescription"
                     placeholder="Business Description"
@@ -298,7 +307,7 @@ const SignUpPage = () => {
                     className="block w-full px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
                     rows="3"
                   />
-
+                  
                   <select
                     name="agriBusiness.businessType"
                     value={formData.agriBusiness.businessType}

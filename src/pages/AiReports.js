@@ -18,7 +18,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 30,
-    borderBottom: 1, // Changed from '2px solid' to number
+    borderBottom: 1,
     borderColor: '#166534',
     paddingBottom: 20,
   },
@@ -37,6 +37,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: '#166534',
     marginBottom: 5,
+    fontFamily: 'Helvetica-Bold', // Added for bold text
   },
   title: {
     fontSize: 20,
@@ -76,7 +77,7 @@ const styles = StyleSheet.create({
     height: 300,
     marginVertical: 15,
     alignSelf: 'center',
-    border: 1, // Changed from '1px solid' to number
+    border: 1,
     borderColor: '#E5E7EB',
   },
   bulletPoint: {
@@ -115,7 +116,7 @@ const styles = StyleSheet.create({
   },
   userInfo: {
     marginTop: 10,
-    borderTop: 1, // Changed from '1px solid' to number
+    borderTop: 1,
     borderColor: '#E5E7EB',
     paddingTop: 10,
   },
@@ -167,6 +168,7 @@ const ReportPDF = ({ report, userName }) => {
 
   return (
     <Document>
+      {/* First Page */}
       <Page size="A4" style={styles.page}>
         {/* Header Section */}
         <View style={styles.headerSection}>
@@ -174,7 +176,7 @@ const ReportPDF = ({ report, userName }) => {
             <Image src={Image4} style={styles.logo} />
           </View>
           <View style={styles.titleSection}>
-            <Text style={styles.companyName}>Wasp Warden</Text>
+            <Text style={styles.companyName}>WASP WARDEN</Text>
             <Text style={styles.title}>AI Detection Report</Text>
           </View>
         </View>
@@ -196,7 +198,7 @@ const ReportPDF = ({ report, userName }) => {
             </Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={styles.label}>Model:</Text>
+            <Text style={styles.label}>Module:</Text>
             <Text style={styles.value}>{report?.modelName || 'N/A'}</Text>
           </View>
           <View style={styles.infoRow}>
@@ -224,7 +226,10 @@ const ReportPDF = ({ report, userName }) => {
             <Image src={imageSource} style={styles.detectionImage} />
           </View>
         )}
+      </Page>
 
+      {/* Second Page */}
+      <Page size="A4" style={styles.page}>
         {/* Treatment Section */}
         {report?.treatment && (
           <View style={styles.section}>
@@ -273,6 +278,8 @@ const ReportPDF = ({ report, userName }) => {
   );
 };
 
+
+
 // Update the download button in your table to use PDFDownloadLink
 const ReportDownloadButton = ({ report, userName }) => (
   <PDFDownloadLink
@@ -283,7 +290,7 @@ const ReportDownloadButton = ({ report, userName }) => (
     {({ loading }) => (
       <>
         <Download className="h-4 w-4 mr-1" />
-        {loading ? 'Generating...' : 'Download PDF'}
+        {loading ? 'Fetching...' : 'Download PDF'}
       </>
     )}
   </PDFDownloadLink>
@@ -427,7 +434,7 @@ const AIReportsPage = () => {
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Report ID</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Model</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Module</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Detection</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Confidence</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Severity</th>

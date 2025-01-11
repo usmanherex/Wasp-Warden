@@ -1,11 +1,19 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card2';
 import { Camera } from 'lucide-react';
-
+import { Alert, AlertDescription } from '../components/ui/Alert';
 const CreateAgriBusinessProduct = () => {
   const [productType, setProductType] = useState('');
   const [imagePreview, setImagePreview] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [alert, setAlert] = useState({ show: false, message: '', type: '' });
+  const user = JSON.parse(localStorage.getItem('user'));
+  const userId = user.userId;
+  const userType = user.userType;
+  const [formData, setFormData] = useState({
+    userId: userId,
+    userType: userType, 
+  });
 
   const machineTypes = [
     'Tractor',
@@ -59,23 +67,79 @@ const CreateAgriBusinessProduct = () => {
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
+        setFormData(prev => ({ ...prev, image: reader.result }));
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    // Simulate API call
-    setTimeout(() => {
+    
+    try {
+      const submitData = {
+        ...formData,
+        productType: productType === 'machine' ? 'Machine' : 'Chemical',
+        quantityAvailable: formData['quantity in Stock'],
+      };
+
+      const response = await fetch('http://localhost:5000/agribusiness-products/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(submitData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setAlert({
+          show: true,
+          message: data.message,
+          type: 'success'
+        });
+        // Reset form
+        setProductType('');
+        setImagePreview(null);
+        setFormData({
+          userId: userId,
+          userType: userType,
+        });
+      } else {
+        setAlert({
+          show: true,
+          message: data.message,
+          type: 'error'
+        });
+      }
+    } catch (error) {
+      setAlert({
+        show: true,
+        message: 'An error occurred while creating the product',
+        type: 'error'
+      });
+    } finally {
       setIsSubmitting(false);
-    }, 1500);
+    }
   };
 
   return (
     <div className="min-h-screen bg-green-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
+      {alert.show && (
+          <Alert className={`mb-4 ${alert.type === 'success' ? 'bg-green-100' : 'bg-red-100'}`}>
+            <AlertDescription>
+              {alert.message}
+            </AlertDescription>
+          </Alert>
+        )}
         <Card>
           <CardHeader className="bg-green-600 text-white rounded-t-lg">
             <CardTitle>
@@ -155,7 +219,6 @@ const CreateAgriBusinessProduct = () => {
                     </div>
                   </div>
 
-                  {/* Dynamic Form Fields */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Title Field */}
                     <div className="md:col-span-2">
@@ -164,6 +227,8 @@ const CreateAgriBusinessProduct = () => {
                       </label>
                       <input
                         type="text"
+                        name="title"
+                        onChange={handleInputChange}
                         className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                         required
                       />
@@ -180,7 +245,9 @@ const CreateAgriBusinessProduct = () => {
                         </div>
                         <input
                           type="number"
+                          name="price"
                           step="0.01"
+                          onChange={handleInputChange}
                           className="pl-7 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                           required
                         />
@@ -195,6 +262,8 @@ const CreateAgriBusinessProduct = () => {
                             Machine Type
                           </label>
                           <select
+                            name="machineType"
+                            onChange={handleInputChange}
                             className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                             required
                           >
@@ -213,7 +282,9 @@ const CreateAgriBusinessProduct = () => {
                           </label>
                           <input
                             type="number"
+                            name="machineWeight"
                             step="0.1"
+                            onChange={handleInputChange}
                             className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                             required
                           />
@@ -224,6 +295,8 @@ const CreateAgriBusinessProduct = () => {
                             Power Source
                           </label>
                           <select
+                            name="powerSource"
+                            onChange={handleInputChange}
                             className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                             required
                           >
@@ -242,7 +315,9 @@ const CreateAgriBusinessProduct = () => {
                           </label>
                           <input
                             type="number"
+                            name="warranty"
                             min="0"
+                            onChange={handleInputChange}
                             className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                             required
                           />
@@ -258,6 +333,8 @@ const CreateAgriBusinessProduct = () => {
                             Chemical Type
                           </label>
                           <select
+                            name="chemicalType"
+                            onChange={handleInputChange}
                             className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                             required
                           >
@@ -275,6 +352,8 @@ const CreateAgriBusinessProduct = () => {
                             Metric System
                           </label>
                           <select
+                            name="metricSystem"
+                            onChange={handleInputChange}
                             className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                             required
                           >
@@ -292,6 +371,8 @@ const CreateAgriBusinessProduct = () => {
                             Hazard Level
                           </label>
                           <select
+                            name="hazardLevel"
+                            onChange={handleInputChange}
                             className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                             required
                           >
@@ -310,6 +391,8 @@ const CreateAgriBusinessProduct = () => {
                           </label>
                           <input
                             type="date"
+                            name="expiryDate"
+                            onChange={handleInputChange}
                             className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                             required
                           />
@@ -324,18 +407,38 @@ const CreateAgriBusinessProduct = () => {
                       </label>
                       <input
                         type="number"
+                        name="quantity in Stock"
                         min="0"
+                        onChange={handleInputChange}
                         className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                         required
                       />
                     </div>
+                    
+                    {productType === 'chemical' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Quantity
+                        </label>
+                        <input
+                          type="number"
+                          name="quantity"
+                          min="0"
+                          onChange={handleInputChange}
+                          className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                          required
+                        />
+                      </div>
+                    )}
 
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700">
                         {productType === 'machine' ? 'Machine Description' : 'Chemical Description'}
                       </label>
                       <textarea
+                        name="description"
                         rows="3"
+                        onChange={handleInputChange}
                         className="mt-1 block w-full px-3 py-2 rounded-md border border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                         required
                       />
@@ -360,16 +463,16 @@ const CreateAgriBusinessProduct = () => {
                       ) : (
                         'Create Product'
                       )}
-                    </button>
-                  </div>
-                </>
-              )}
-            </form>
-          </CardContent>
-        </Card>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </form>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </div>
-  );
-};
-
-export default CreateAgriBusinessProduct;
+    );
+  };
+  
+  export default CreateAgriBusinessProduct;

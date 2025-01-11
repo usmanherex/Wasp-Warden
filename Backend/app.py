@@ -1,3 +1,5 @@
+import base64
+import json
 import os
 import secrets
 import jwt
@@ -56,6 +58,7 @@ def register_user():
     try:
         profile_picture = request.files.get('profilePicture')
         profile_picture_binary = None
+        user_type = request.form.get('userType') 
         if profile_picture:
             profile_picture_binary = profile_picture.read()
 
@@ -67,14 +70,14 @@ def register_user():
             'password': generate_password_hash(request.form.get('password')),
             'phoneNumber': request.form.get('phoneNumber'),
             'nationalID': request.form.get('nationalID'),
-            'address': request.form.get('address', ''),
+            'address': request.form.get('businessAddress', '') if user_type == 'Agri-business' else request.form.get('address', ''),
             'gender': request.form.get('gender'),
             'profilePicture': profile_picture_binary
         }
 
         # Determine user type and additional data
-        user_type = request.form.get('userType')
         
+        print(user_type)
         if user_type.lower() == 'consumer':
             additional_data = {
                 'consumerType': request.form.get('consumerType'),
@@ -554,6 +557,103 @@ def create_product():
             'success': False,
             'message': f'Server error: {str(e)}'
         }), 500
+
+@app.route('/agribusiness-products/create', methods=['POST'])
+def create_product_agribusiness():
+    try:
+        data = request.json
+        
+        # Validate user is logged in and is a farmer
+        if not data.get('userId'):
+            return jsonify({
+                'success': False,
+                'message': 'User not logged in'
+            }), 401
+        
+        if data.get('userType') != 'Agri-business':
+            return jsonify({
+                'success': False,
+                'message': 'Only AgriBusiness can create products'
+            }), 403
+
+        # Validate common required fields
+        common_required_fields = ['userId', 'title',  'description', 'price', 'quantity in Stock' ]
+        for field in common_required_fields:
+            if not data.get(field):
+                return jsonify({
+                    'success': False,
+                    'message': f'Missing required field: {field}'
+                }), 400
+
+        # Additional validation based on product type
+        if data.get('productType') == 'Machine':
+            required_fields = ['machineType', 'machineWeight', 'powerSource', 'warranty']
+            for field in required_fields:
+                if not data.get(field):
+                    return jsonify({
+                        'success': False,
+                        'message': f'Missing required field for machine: {field}'
+                    }), 400
+
+        elif data.get('productType') == 'Chemical':
+            required_fields = ['metricSystem', 'chemicalType', 'expiryDate', 'hazardLevel','quantity']
+            for field in required_fields:
+                if not data.get(field):
+                    return jsonify({
+                        'success': False,
+                        'message': f'Missing required field for chemical: {field}'
+                    }), 400
+
+        # Create product with item
+        success, message = db.create_agribusiness_item(data)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': message
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': f'Failed to create product: {message}'
+            }), 500
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Server error: {str(e)}'
+        }), 500
+    
+@app.route('/agribusiness-products/<user_id>', methods=['GET'])
+def get_agribusiness_products(user_id):
+    try:
+        # Get user type from request
+        user_type = request.args.get('userType')
+        
+        if user_type != 'Agri-business':
+            return jsonify({
+                'success': False,
+                'message': 'Only Agri-business users can access these products'
+            }), 403
+
+        success, results = db.get_agribusiness_items(user_id)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'data': results
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': f'Failed to fetch products: {results}'
+            }), 500
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Server error: {str(e)}'
+        }), 500
     
 @app.route('/farmer-products/<int:farmer_id>', methods=['GET'])
 def get_farmer_products(farmer_id):
@@ -567,7 +667,74 @@ def get_farmer_products(farmer_id):
         'success': False,
         'message': str(result)
     }), 500
-
+# API route using the function
+@app.route('/agribusiness-product/<int:product_id>', methods=['PUT'])
+def update_product_agribusiness(product_id):
+    try:
+        data = request.json
+      
+        success, result = db.update_agribusiness_product(product_id, data)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': result
+            })
+        return jsonify({
+            'success': False,
+            'message': result
+        }), 500
+        
+    except Exception as e:
+        print(f"Error in update_product route: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+    
+@app.route('/agribusiness-product/<int:product_id>', methods=['GET'])
+def get_product(product_id):
+    try:
+        success, result = db.get_agribusiness_product(product_id)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'product': result
+            })
+        return jsonify({
+            'success': False,
+            'message': result
+        }), 404 if result == "Product not found" else 500
+        
+    except Exception as e:
+        print(f"Error in get_product route: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+@app.route('/agribusiness-product/<int:product_id>', methods=['DELETE'])
+def delete_agribusiness_product(product_id):
+    try:
+        success, result = db.delete_agribusiness_product(product_id)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': result
+            })
+        return jsonify({
+            'success': False,
+            'message': result
+        }), 404 if result == "Product not found" else 500
+        
+    except Exception as e:
+        print(f"Error in delete_product route: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+    
 @app.route('/farmer/products/<int:product_id>', methods=['GET'])
 def get_product_details(product_id):
     success, result = db.get_product_details(product_id)
@@ -728,6 +895,58 @@ def get_user_name(user_id):
             'success': False,
             'message': str(e)
         }), 500
+@app.route('/user-profile/<int:user_id>', methods=['GET'])
+def get_user_profile(user_id):
+    try:
+        user_data = db.get_user_profile(user_id)
+        if not user_data:
+            return jsonify({'error': 'User not found'}), 404
+            
+        return jsonify(user_data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/update-profile/<int:user_id>', methods=['PUT'])
+def update_user_profile(user_id):
+    try:
+        data = request.json
+        # If there's a base64 image in the request, decode it
+        if data.get('profileImage') and isinstance(data['profileImage'], str):
+            try:
+                # Remove the data URL prefix if present
+                if 'base64,' in data['profileImage']:
+                    base64_string = data['profileImage'].split('base64,')[1]
+                else:
+                    base64_string = data['profileImage']
+                data['profileImage'] = base64.b64decode(base64_string)
+            except Exception as e:
+                return jsonify({'error': 'Invalid image format'}), 400
+
+        success = db.update_user_profile(user_id, data)
+        if success:
+            return jsonify({'message': 'Profile updated successfully'}), 200
+        return jsonify({'error': 'Failed to update profile'}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
     
+@app.route('/start-chat', methods=['POST'])
+def start_chat():
+    try:
+        data = request.json
+        success = db.initialize_chat(data.get('user1Id'), data.get('user2Id'))
+        if success:
+            return jsonify(success), 200
+        return jsonify({'error': 'Failed to initialize chat'}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+@app.route('/check-chat/<int:user1_id>/<int:user2_id>', methods=['GET'])
+def check_existing_chat(user1_id, user2_id):
+    try:
+        result = db.get_chat(user1_id, user2_id)
+        if result:
+            return jsonify(result), 200
+        return jsonify({'error': 'Chat not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 if __name__ == '__main__':
     socketio.run(app, debug=True)
