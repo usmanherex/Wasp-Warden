@@ -141,6 +141,8 @@ const DetectionPage = ({ title, description, icon: Icon, type }) => {
 
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
+  
+
     setSelectedFile(file);
     setSelectedImage(URL.createObjectURL(file));
     setError(null);
@@ -200,7 +202,11 @@ const DetectionPage = ({ title, description, icon: Icon, type }) => {
       }
 
       const data = await response.json();
-
+      const imageBase64 = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result.split(',')[1]); // Removing the data URL header
+        reader.readAsDataURL(selectedFile);
+    });
       // Prepare report data
       const reportData = {
         userID: user.userId,
@@ -209,7 +215,7 @@ const DetectionPage = ({ title, description, icon: Icon, type }) => {
         detectedIssue: data.predicted_class,
         confidence: parseFloat(data.confidence),
         severity: data.severity || 'None',
-        imageData: selectedImage,
+        imageData: imageBase64,
         recommendations: data.recommendations,
         preventiveMeasures: data.preventions,
         treatment: data.chemical

@@ -710,26 +710,19 @@ def delete_report(report_id):
 @app.route('/users/<user_id>/name', methods=['GET'])
 def get_user_name(user_id):
     try:
-        query = """
-            SELECT UserName 
-            FROM Users 
-            WHERE UserId = ?
-        """
+        user_name = db.get_user_name(user_id)
         
-        success, result = db.execute_query(query, (user_id,))
-        
-        if success and result:
+        if user_name:
             return jsonify({
                 'success': True,
-                'UserName': result[0]
-            
+                'UserName': user_name
             })
-        
+
         return jsonify({
             'success': False,
             'message': 'User not found'
         }), 404
-        
+
     except Exception as e:
         return jsonify({
             'success': False,

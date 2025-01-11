@@ -706,6 +706,10 @@ class WardernDatabase:
                 
                 reports = []
                 for row in rows:
+                    print(row[6])
+                    print(base64.b64encode(row[6]))
+                    print(base64.b64encode(row[6]).decode('utf-8'))
+                    print("--------------------------")
                     report = {
                         'reportID': row[0],
                         'timestamp': row[1].isoformat(),
@@ -718,6 +722,7 @@ class WardernDatabase:
                         'preventiveMeasures': row[8],
                         'treatment': row[9]
                     }
+                    
                     reports.append(report)
                 
                 return True, reports
@@ -769,7 +774,7 @@ class WardernDatabase:
                     'preventiveMeasures': row[8],
                     'treatment': row[9]
                 }
-                
+             
                 return True, report
                 
         except Exception as e:
@@ -790,5 +795,13 @@ class WardernDatabase:
         except Exception as e:
             print(f"Error deleting report: {str(e)}")
             return False, str(e)  
-
+    def get_user_name(self, user_id):
+        try:
+            with self._get_connection() as conn:
+             cursor = conn.cursor()
+             cursor.execute("SELECT UserName FROM Users WHERE UserId = ?", (user_id,))
+             result = cursor.fetchone()
+             return result[0] if result else None
+        except Exception as e:
+            raise e
    
