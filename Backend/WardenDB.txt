@@ -166,3 +166,10 @@ CREATE TABLE Chemicals (
 
     
 );
+
+-- Saved Products Table
+CREATE TABLE saved_products (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    itemID INTEGER NOT NULL,
+    userID INTEGER NOT NULL
+);

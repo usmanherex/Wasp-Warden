@@ -94,7 +94,12 @@ const Navbar = () => {
     { title: "Marketplace", path: "/marketplace" },
     { title: "Inbox", path: "/inbox" }
   ];
-
+  const ConsumerNavigation = [
+    { title: "Dashboard", path: "/consumer-dashboard" },
+    { title: "Mart", path: "/mart" },
+    { title: "Inbox", path: "/inbox" },
+    { title: "Cart", path: "/cart" },
+  ];
   const publicNavigation = [
     { title: "Home", path: "/home" },
     { title: "Contact", path: "/contact" },
@@ -116,6 +121,7 @@ const Navbar = () => {
     if (!isLoggedIn) return publicNavigation;
     if (userType === 'Farmer') return farmerNavigation;
     if (userType === 'Agri-business') return AgribusinessNavigation;
+    if (userType === 'Consumer') return ConsumerNavigation;
     return publicNavigation;
   };
 
@@ -155,7 +161,7 @@ const Navbar = () => {
             ))}
 
             {/* Notifications - Show for both Farmer and Agri-business users */}
-            {isLoggedIn && (userType === 'Farmer' || userType === 'Agri-business') && (
+            {isLoggedIn && (userType === 'Farmer' || userType === 'Agri-business'|| userType === 'Consumer') && (
               <div className="relative" ref={notificationRef}>
                 <button
                   onClick={() => setIsNotificationOpen(!isNotificationOpen)}

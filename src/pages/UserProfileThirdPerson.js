@@ -367,6 +367,7 @@ const UserProfile = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-6">
+                  {profile.associatedCompany && (
                     <div className="flex items-center">
                       <Building2 className="w-5 h-5 text-green-600 mr-4" />
                       <div>
@@ -374,10 +375,12 @@ const UserProfile = () => {
                           Associated Company
                         </p>
                         <p className="text-gray-900">
-                          {profile.associatedCompany}
+                          
+                          {profile.associatedCompany }
                         </p>
                       </div>
                     </div>
+                  )}
                     <div className="flex items-center">
                       <Users className="w-5 h-5 text-green-600 mr-4" />
                       <div>

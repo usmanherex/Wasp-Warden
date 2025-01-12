@@ -2,6 +2,7 @@ from base64 import b64encode
 import base64
 from datetime import datetime
 from io import BytesIO
+import sqlite3
 import pyodbc
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -344,6 +345,7 @@ class WardernDatabase:
         finally:
             cursor.close()
             conn.close()      
+   
     def get_or_create_category(self, category_name, metric_system):
         """Get existing category ID or create new one if doesn't exist"""
         try:
@@ -539,6 +541,7 @@ class WardernDatabase:
      except Exception as e:
         print(f"Error in create_product_with_item: {str(e)}")
         return False, str(e)   
+  
     def get_agribusiness_items(self, user_id):
      try:
         with pyodbc.connect(self.conn_str) as conn:
@@ -624,6 +627,7 @@ class WardernDatabase:
      except Exception as e:
         print(f"Error in get_agribusiness_items: {str(e)}")
         return False, str(e) 
+  
     def get_agribusiness_product(self, product_id):
      try:
         with pyodbc.connect(self.conn_str) as conn:
@@ -711,6 +715,7 @@ class WardernDatabase:
      except Exception as e:
         print(f"Error in get_agribusiness_product: {str(e)}")
         return False, str(e)
+ 
     def update_agribusiness_product(self, product_id, data):
      try:
         with pyodbc.connect(self.conn_str) as conn:
@@ -772,6 +777,7 @@ class WardernDatabase:
      except Exception as e:
         print(f"Error in update_agribusiness_product: {str(e)}")
         return False, str(e)  
+   
     def delete_agribusiness_product(self, product_id):
      try:
         with pyodbc.connect(self.conn_str) as conn:
@@ -1000,6 +1006,7 @@ class WardernDatabase:
         except Exception as e:
             print(f"Error deleting product: {str(e)}")
             return False, str(e)
+  
     def save_disease_report(self, report_data):
         """
         Save a new disease detection report
@@ -1181,6 +1188,7 @@ class WardernDatabase:
         except Exception as e:
             print(f"Error deleting report: {str(e)}")
             return False, str(e)  
+  
     def get_user_name(self, user_id):
         try:
             with self._get_connection() as conn:
@@ -1340,6 +1348,15 @@ class WardernDatabase:
                 data.get('businessDescription'),
                 user_id
             ))
+        elif data.get('userType') == 'Consumer':
+            cursor.execute("""
+                UPDATE Consumers 
+                SET AssociatedCompany = ?
+                WHERE UserId = ?
+            """, (
+                data.get('associatedCompany'),
+                user_id
+            ))
         # Update profile picture if provided
         if data.get('profilePicture'):
             try:
@@ -1422,6 +1439,7 @@ class WardernDatabase:
      finally:
         cursor.close()
         conn.close()
+ 
     def get_chat(self, user1_id, user2_id):
      conn = self._get_connection()
      cursor = conn.cursor()
@@ -1449,3 +1467,259 @@ class WardernDatabase:
      finally:
         cursor.close()
         conn.close()
+    
+    def get_all_products(self):
+    
+     try:
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            
+            query = """
+                SELECT 
+                    i.itemID,
+                    i.itemName,
+                    i.itemPrice,
+                    i.itemDescription,
+                    i.quantityAvailable,
+                    i.itemImage,
+                    i.ownerID,
+                    i.salePercentage,
+                    p.minimumBulkAmount,
+                    c.categoryName,
+                    c.metricSystem,
+                    u.FirstName,
+                    u.LastName,
+                    u.UserName,
+                    u.UserType
+                FROM Items i
+                JOIN Products p ON i.itemID = p.productID
+                JOIN Categories c ON p.categoryID = c.categoryID
+                JOIN Users u ON i.ownerID = u.UserId
+                ORDER BY i.itemCreationDate DESC
+            """
+            
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            
+            products = []
+            for row in rows:
+                product = {
+                    'id': row[0],
+                    'itemName': row[1],
+                    'itemPrice': float(row[2]),
+                    'itemDescription': row[3],
+                    'quantityAvailable': row[4],
+                    'itemImage': base64.b64encode(row[5]).decode('utf-8') if row[5] else None,
+                    'ownerId': row[6],
+                    'salePercentage': row[7],
+                    'minimumBulkAmount': row[8],
+                    'category': row[9],
+                    'metricSystem': row[10],
+                    'ownerDetails': {
+                        'firstName': row[11],
+                        'lastName': row[12],
+                        'userName': row[13],
+                        'userType':row[14]
+                    }
+                }
+                products.append(product)
+            
+            return True, products
+            
+     except Exception as e:
+        print(f"Error fetching all products: {str(e)}")
+        return False, str(e)
+     
+    def get_all_agribusiness_products(self):
+     try:
+        with pyodbc.connect(self.conn_str) as conn:
+            cursor = conn.cursor()
+            
+            # Get all products with business and owner information
+            machines_query = """
+                SELECT 
+                    i.itemID,
+                    i.ownerID,
+                    i.itemName,
+                    i.itemPrice,
+                    i.itemDescription,
+                    i.quantityAvailable,
+                    i.itemImage,
+                    i.itemRating,
+                    i.salePercentage,
+                    m.machineType,
+                    m.machineWeight,
+                    m.powerSource,
+                    m.warranty,
+                    ab.AgriBusinessName,
+                    ab.BusinessType,
+                    u.FirstName,
+                    u.LastName,
+                    u.Email,
+                    u.PhoneNumber
+                FROM Items i
+                INNER JOIN Machines m ON i.itemID = m.machineID
+                INNER JOIN AgriBusiness ab ON i.ownerID = ab.UserId
+                INNER JOIN Users u ON ab.UserId = u.UserId
+            """
+            
+            chemicals_query = """
+                SELECT 
+                    i.itemID,
+                    i.ownerID,
+                    i.itemName,
+                    i.itemPrice,
+                    i.itemDescription,
+                    i.quantityAvailable,
+                    i.itemImage,
+                    i.itemRating,
+                    i.salePercentage,
+                    c.metricSystem,
+                    c.quantity,
+                    c.chemicalType,
+                    c.expiryDate,
+                    c.hazardLevel,
+                    ab.AgriBusinessName,
+                    ab.BusinessType,
+                    u.FirstName,
+                    u.LastName,
+                    u.Email,
+                    u.PhoneNumber
+                FROM Items i
+                INNER JOIN Chemicals c ON i.itemID = c.chemicalID
+                INNER JOIN AgriBusiness ab ON i.ownerID = ab.UserId
+                INNER JOIN Users u ON ab.UserId = u.UserId
+            """
+            
+            # Get machines
+            cursor.execute(machines_query)
+            machines = []
+            for row in cursor.fetchall():
+                machine = {
+                    'itemId': row[0],
+                    'ownerId': row[1],
+                    'title': row[2],
+                    'price': float(row[3]),
+                    'description': row[4],
+                    'quantityAvailable': row[5],
+                    'image': base64.b64encode(row[6]).decode('utf-8') if row[6] else None,
+                    'rating': row[7],
+                    'salePercentage': row[8],
+                    'productType': 'Machine',
+                    'machineType': row[9],
+                    'machineWeight': float(row[10]),
+                    'powerSource': row[11],
+                    'warranty': row[12],
+                    'businessInfo': {
+                        'agriBusinessName': row[13],
+                        'businessType': row[14],
+                        'ownerName': f"{row[15]} {row[16]}",
+                        'email': row[17],
+                        'phoneNumber': row[18]
+                    }
+                }
+                machines.append(machine)
+            
+            # Get chemicals
+            cursor.execute(chemicals_query)
+            chemicals = []
+            for row in cursor.fetchall():
+                chemical = {
+                    'itemId': row[0],
+                    'ownerId': row[1],
+                    'title': row[2],
+                    'price': float(row[3]),
+                    'description': row[4],
+                    'quantityAvailable': row[5],
+                    'image': base64.b64encode(row[6]).decode('utf-8') if row[6] else None,
+                    'rating': row[7],
+                    'salePercentage': row[8],
+                    'productType': 'Chemical',
+                    'metricSystem': row[9],
+                    'quantity': float(row[10]),
+                    'chemicalType': row[11],
+                    'expiryDate': row[12].isoformat() if row[12] else None,
+                    'hazardLevel': row[13],
+                    'businessInfo': {
+                        'agriBusinessName': row[14],
+                        'businessType': row[15],
+                        'ownerName': f"{row[16]} {row[17]}",
+                        'email': row[18],
+                        'phoneNumber': row[19]
+                    }
+                }
+                chemicals.append(chemical)
+            
+            # Combine all products
+            all_products = machines + chemicals
+            
+            return True, all_products
+            
+     except Exception as e:
+        print(f"Error in get_all_agribusiness_products: {str(e)}")
+        return False, str(e)
+    # Database Class Methods
+    
+    def save_product(self, item_id, user_id):
+     try:
+        with pyodbc.connect(self.conn_str) as conn:
+            cursor = conn.cursor()
+            query = """
+                INSERT INTO saved_products (itemID, userID)
+                VALUES (?, ?)
+            """
+            cursor.execute(query, (item_id, user_id))
+            conn.commit()
+            return True, "Product saved successfully"
+            
+     except pyodbc.IntegrityError as e:
+        return False, "Product already saved or invalid item/user ID"
+     except Exception as e:
+        return False, str(e)
+
+    def get_saved_products(self, user_id):
+     try:
+        with pyodbc.connect(self.conn_str) as conn:
+            cursor = conn.cursor()
+            query = """
+                SELECT i.* 
+                FROM items i
+                INNER JOIN saved_products sp ON i.itemID = sp.itemID
+                WHERE sp.userID = ?
+            """
+            cursor.execute(query, (user_id,))
+            products = cursor.fetchall()
+            
+            if not products:
+                return True, []
+                
+            formatted_products = []
+            for product in products:
+                formatted_products.append({
+                    'id': product[0],
+                   
+                })
+                
+            return True, formatted_products
+            
+     except Exception as e:
+        return False, str(e)
+
+    def remove_saved_product(self, user_id, item_id):
+     try:
+        with pyodbc.connect(self.conn_str) as conn:
+            cursor = conn.cursor()
+            query = """
+                DELETE FROM saved_products 
+                WHERE userID = ? AND itemID = ?
+            """
+            cursor.execute(query, (user_id, item_id))
+            conn.commit()
+            
+            if cursor.rowcount == 0:
+                return False, "Product not found in saved items"
+                
+            return True, "Product removed successfully"
+            
+     except Exception as e:
+        return False, str(e)

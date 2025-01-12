@@ -15,7 +15,15 @@ import {
   PlusIcon,
   Lock,
   CreditCard,
-  UserCheck,Eye, EyeOff, Building, FileText, Tag, HashIcon,Building2,Users
+  UserCheck,
+  Eye,
+  EyeOff,
+  Building,
+  FileText,
+  Tag,
+  HashIcon,
+  Building2,
+  Users,
 } from "lucide-react";
 import axios from "axios";
 import ViewProfileButton from "../components/ui/ViewProfileButton";
@@ -141,38 +149,40 @@ const FarmInfoCard = ({ userInfo }) => (
 );
 
 const ConsumerInfoCard = ({ userInfo }) => (
-
   <Card>
     <div className="p-6">
       <h3 className="text-xl font-semibold mb-6 text-gray-800 border-b pb-2">
         Consumer Information
       </h3>
       <div className="grid md:grid-cols-2 gap-4">
+        {userInfo.associatedCompany && (
+          <InfoField
+            icon={Building2}
+            label="Associated Company"
+            value={userInfo.associatedCompany}
+          />
+        )}
+
         <InfoField
-          icon={Building2}  
-          label="Associated Company"
-          value={userInfo.associatedCompany }
-        />
-            <InfoField
           icon={Users}
           label="Consumer Type"
-          value={userInfo.consumerType }
+          value={userInfo.consumerType}
         />
-       
-    
       </div>
     </div>
   </Card>
 );
 
-
-
-const InfoField2 = ({ icon: Icon = Crop, label = "Specialization", value = "" }) => {
+const InfoField2 = ({
+  icon: Icon = Crop,
+  label = "Specialization",
+  value = "",
+}) => {
   // Split the value by comma and trim whitespace
   const specializations = value
-    .split(',')
-    .map(item => item.trim())
-    .filter(item => item.length > 0);
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
 
   return (
     <div className="flex flex-col space-y-2">
@@ -183,7 +193,7 @@ const InfoField2 = ({ icon: Icon = Crop, label = "Specialization", value = "" })
         </div>
         <div className="flex flex-wrap gap-2">
           {specializations.map((specialization, index) => (
-            <span 
+            <span
               key={index}
               className="px-3 py-1 text-sm bg-white rounded-full border border-gray-200 font-medium"
             >
@@ -195,7 +205,6 @@ const InfoField2 = ({ icon: Icon = Crop, label = "Specialization", value = "" })
     </div>
   );
 };
-
 
 const InfoField = ({ icon: Icon, label, value }) => (
   <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
@@ -217,7 +226,7 @@ const UserProfilePage = () => {
   const fetchUserProfile = async () => {
     try {
       // Replace with actual user ID
-      
+
       const response = await axios.get(
         `http://localhost:5000/user-profile/${userId}`
       );
@@ -318,34 +327,33 @@ const UserProfilePage = () => {
                     </span>
                   </div>
                 </div>
-                <div className="space-y-4"> {/* Container with vertical spacing */}
-                <ViewProfileButton userId={userId} />
-
-  <button
-    onClick={() => setIsEditing(true)}
-    className="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center justify-center"
-  >
-    <Edit3 className="mr-2" size={18} />
-    Edit Profile
-  </button>
-</div>
+                <div className="space-y-4">
+                  {" "}
+                  {/* Container with vertical spacing */}
+                  <ViewProfileButton userId={userId} />
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center justify-center"
+                  >
+                    <Edit3 className="mr-2" size={18} />
+                    Edit Profile
+                  </button>
+                </div>
               </div>
             </Card>
           </div>
 
-   {/* Right Column - Main Content */}
-   <div className="lg:col-span-8 space-y-6">
-            {userInfo.userType === 'Agri-business' ? (
-               <BusinessInfoCard userInfo={userInfo} />
-            ) : userInfo.userType === 'Farmer' ? (
-               <FarmInfoCard userInfo={userInfo} />
-            ) : userInfo.userType === 'Consumer' ? (
-               <ConsumerInfoCard userInfo={userInfo} />
+          {/* Right Column - Main Content */}
+          <div className="lg:col-span-8 space-y-6">
+            {userInfo.userType === "Agri-business" ? (
+              <BusinessInfoCard userInfo={userInfo} />
+            ) : userInfo.userType === "Farmer" ? (
+              <FarmInfoCard userInfo={userInfo} />
+            ) : userInfo.userType === "Consumer" ? (
+              <ConsumerInfoCard userInfo={userInfo} />
             ) : (
-                <></>
+              <></>
             )}
-
-            
 
             <Card>
               <div className="p-6">
@@ -354,11 +362,31 @@ const UserProfilePage = () => {
                 </h3>
                 <div className="grid md:grid-cols-2 gap-4">
                   <InfoField icon={Mail} label="Email" value={userInfo.email} />
-                  <InfoField icon={Phone} label="Phone" value={userInfo.phoneNumber} />
-                  <InfoField icon={User} label="Gender" value={userInfo.gender} />
-                  <InfoField icon={CreditCard} label="National ID" value={userInfo.nationalID} />
-                  <InfoField icon={Calendar} label="Registration Date" value={userInfo.registrationDate} />
-                  <InfoField icon={UserCheck} label="Account Status" value={userInfo.accountStatus} />
+                  <InfoField
+                    icon={Phone}
+                    label="Phone"
+                    value={userInfo.phoneNumber}
+                  />
+                  <InfoField
+                    icon={User}
+                    label="Gender"
+                    value={userInfo.gender}
+                  />
+                  <InfoField
+                    icon={CreditCard}
+                    label="National ID"
+                    value={userInfo.nationalID}
+                  />
+                  <InfoField
+                    icon={Calendar}
+                    label="Registration Date"
+                    value={userInfo.registrationDate}
+                  />
+                  <InfoField
+                    icon={UserCheck}
+                    label="Account Status"
+                    value={userInfo.accountStatus}
+                  />
                 </div>
               </div>
             </Card>
@@ -373,7 +401,7 @@ const EditProfileForm = ({ userInfo, onSave, onCancel }) => {
   const [formData, setFormData] = useState({ ...userInfo });
   const [error, setError] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -485,6 +513,25 @@ const EditProfileForm = ({ userInfo, onSave, onCancel }) => {
       </div>
     </>
   );
+  const renderConsumerFields = () => (
+    <>
+      {formData.consumerType === "Corporate" && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Associated Company
+          </label>
+          <input
+            type="text"
+            value={formData.associatedCompany}
+            onChange={(e) =>
+              setFormData({ ...formData, associatedCompany: e.target.value })
+            }
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          />
+        </div>
+      )}
+    </>
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-green-50 p-6">
@@ -586,7 +633,11 @@ const EditProfileForm = ({ userInfo, onSave, onCancel }) => {
                 </div>
               </div>
 
-              {formData.userType === 'Agri-business' ? renderBusinessFields() : renderFarmerFields()}
+              {formData.userType === "Agri-business"
+                ? renderBusinessFields()
+                : formData.userType === "Consumer"
+                ? renderConsumerFields()
+                : renderFarmerFields()}
 
               <div className="flex justify-end space-x-4">
                 <button

@@ -27,7 +27,7 @@ app.config['SECRET_KEY'] = 'waspxxx'
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 db = WardernDatabase(
-    server='DESKTOP-DHQTJP2\\SQLEXPRESS', 
+    server='DEADSEC', 
     database='WaspWardenDB',
     #Username and Password will be used when db is not local
     username='your_username', 
@@ -713,6 +713,7 @@ def get_product(product_id):
             'success': False,
             'message': str(e)
         }), 500
+
 @app.route('/agribusiness-product/<int:product_id>', methods=['DELETE'])
 def delete_agribusiness_product(product_id):
     try:
@@ -853,6 +854,7 @@ def get_report_details(report_id):
         'success': False,
         'message': str(result)
     }), 404 if result == "Report not found" else 500
+
 @app.route('/disease-reports/<report_id>', methods=['DELETE'])
 def delete_report(report_id):
     try:
@@ -874,6 +876,7 @@ def delete_report(report_id):
             'success': False,
             'message': str(e)
         }), 500
+
 @app.route('/users/<user_id>/name', methods=['GET'])
 def get_user_name(user_id):
     try:
@@ -895,6 +898,7 @@ def get_user_name(user_id):
             'success': False,
             'message': str(e)
         }), 500
+
 @app.route('/user-profile/<int:user_id>', methods=['GET'])
 def get_user_profile(user_id):
     try:
@@ -939,6 +943,7 @@ def start_chat():
         return jsonify({'error': 'Failed to initialize chat'}), 400
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 @app.route('/check-chat/<int:user1_id>/<int:user2_id>', methods=['GET'])
 def check_existing_chat(user1_id, user2_id):
     try:
@@ -948,5 +953,116 @@ def check_existing_chat(user1_id, user2_id):
         return jsonify({'error': 'Chat not found'}), 404
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/farmer/products', methods=['GET'])
+def get_all_products():
+    success, result = db.get_all_products()
+    if success:
+        return jsonify({
+            'success': True,
+            'products': result
+        })
+    return jsonify({
+        'success': False,
+        'message': str(result)
+    }), 500
+
+@app.route('/agribusiness/products', methods=['GET'])
+def get_all_agribusinessproducts():
+    try:
+        success, result = db.get_all_agribusiness_products()
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'products': result
+            })
+        return jsonify({
+            'success': False,
+            'message': result
+        }), 500
+        
+    except Exception as e:
+        print(f"Error in get_all_products route: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/savedproducts', methods=['POST'])
+def save_product():
+    try:
+        data = request.get_json()
+        item_id = data.get('itemID')
+        user_id = data.get('userID')
+        
+        if not item_id or not user_id:
+            return jsonify({
+                'success': False,
+                'message': 'itemID and userID are required'
+            }), 400
+            
+        success, result = db.save_product(item_id, user_id)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Product saved successfully'
+            })
+        return jsonify({
+            'success': False,
+            'message': result
+        }), 500
+        
+    except Exception as e:
+        print(f"Error in save_product route: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/savedproducts/<int:user_id>', methods=['GET'])
+def get_saved_products(user_id):
+    try:
+        success, result = db.get_saved_products(user_id)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'savedProducts': result
+            })
+        return jsonify({
+            'success': False,
+            'message': result
+        }), 500
+        
+    except Exception as e:
+        print(f"Error in get_saved_products route: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/savedproducts/<int:user_id>/<int:item_id>', methods=['DELETE'])
+def remove_saved_product(user_id, item_id):
+    try:
+        success, result = db.remove_saved_product(user_id, item_id)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Product removed from saved items successfully'
+            })
+        return jsonify({
+            'success': False,
+            'message': result
+        }), 500
+        
+    except Exception as e:
+        print(f"Error in remove_saved_product route: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
 if __name__ == '__main__':
     socketio.run(app, debug=True)

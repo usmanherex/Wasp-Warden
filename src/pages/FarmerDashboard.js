@@ -21,16 +21,11 @@ import {
 import { Card } from '../components/ui/Card2';
 
 const Dashboard = () => {
-  const weatherData = {
-    temperature: "24°C",
-    humidity: "65%",
-    rainfall: "30%"
-  };
-
+  const user = JSON.parse(localStorage.getItem('user'));
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white p-6">
       <h1 className="text-3xl font-bold text-gray-900 mb-6">Dashboard</h1>
-
+      <h2 className="text-xl font-semibold text-gray-900">Welcome {user.userName}!</h2>
       {/* Quick Stats Section */}
       <div className="mb-8 bg-white rounded-xl shadow-lg p-6">
         <div className="flex items-center mb-6">
