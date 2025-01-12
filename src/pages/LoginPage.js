@@ -49,6 +49,8 @@ const LoginPage = () => {
       else if(response.data.user.userType==='Agri-business')
       {
         navigate('/agribusiness-dashboard');
+      }else if(response.data.user.userType==='Consumer'){
+        navigate('/consumer-dashboard')
       }
     } catch (err) {
       setError(

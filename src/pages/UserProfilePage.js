@@ -15,7 +15,7 @@ import {
   PlusIcon,
   Lock,
   CreditCard,
-  UserCheck,Eye, EyeOff, Building, FileText, Tag, HashIcon
+  UserCheck,Eye, EyeOff, Building, FileText, Tag, HashIcon,Building2,Users
 } from "lucide-react";
 import axios from "axios";
 import ViewProfileButton from "../components/ui/ViewProfileButton";
@@ -139,6 +139,33 @@ const FarmInfoCard = ({ userInfo }) => (
     </div>
   </Card>
 );
+
+const ConsumerInfoCard = ({ userInfo }) => (
+
+  <Card>
+    <div className="p-6">
+      <h3 className="text-xl font-semibold mb-6 text-gray-800 border-b pb-2">
+        Consumer Information
+      </h3>
+      <div className="grid md:grid-cols-2 gap-4">
+        <InfoField
+          icon={Building2}  
+          label="Associated Company"
+          value={userInfo.associatedCompany }
+        />
+            <InfoField
+          icon={Users}
+          label="Consumer Type"
+          value={userInfo.consumerType }
+        />
+       
+    
+      </div>
+    </div>
+  </Card>
+);
+
+
 
 const InfoField2 = ({ icon: Icon = Crop, label = "Specialization", value = "" }) => {
   // Split the value by comma and trim whitespace
@@ -309,10 +336,16 @@ const UserProfilePage = () => {
    {/* Right Column - Main Content */}
    <div className="lg:col-span-8 space-y-6">
             {userInfo.userType === 'Agri-business' ? (
-              <BusinessInfoCard userInfo={userInfo} />
+               <BusinessInfoCard userInfo={userInfo} />
+            ) : userInfo.userType === 'Farmer' ? (
+               <FarmInfoCard userInfo={userInfo} />
+            ) : userInfo.userType === 'Consumer' ? (
+               <ConsumerInfoCard userInfo={userInfo} />
             ) : (
-              <FarmInfoCard userInfo={userInfo} />
+                <></>
             )}
+
+            
 
             <Card>
               <div className="p-6">

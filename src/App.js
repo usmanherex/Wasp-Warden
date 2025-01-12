@@ -29,6 +29,7 @@ import SavedProductsPage from './pages/SavedProducts';
 import Dashboard from './pages/FarmerDashboard';
 import PendingOrders from './pages/PendingOrders';
 import AgriDashboard from './pages/AgriBusinessDashboard';
+import ConsumerDashboard from './pages/ConsumerDashboard';
 
 
 const AppContent = () => {
@@ -78,6 +79,7 @@ const showNavbar = !['/login', '/signup','/forgot-password', '/reset-password'].
         <Route path="/farmer-dashboard" element={<Dashboard />} />
         <Route path="/agribusiness-dashboard" element={<AgriDashboard />} />
         <Route path="/pending-orders" element={<PendingOrders />} />
+        <Route path="/consumer-dashboard" element={<ConsumerDashboard />} />
       </Routes>
 
       {showFooter && <Footer />}

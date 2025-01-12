@@ -1264,6 +1264,19 @@ class WardernDatabase:
                     'businessType': business_data[2],
                     'businessRegistrationNumber': business_data[3]
                 })
+        elif user_profile['userType'] == 'Consumer':
+             cursor.execute("""
+                SELECT AssociatedCompany, ConsumerType
+                FROM Consumers 
+                WHERE UserId = ?
+            """, user_id)
+             consumer_data=cursor.fetchone()
+             if consumer_data:
+                 user_profile.update({
+                    'associatedCompany': consumer_data[0],
+                    'consumerType': consumer_data[1],
+                 })
+
         return user_profile
         
      except Exception as e:
