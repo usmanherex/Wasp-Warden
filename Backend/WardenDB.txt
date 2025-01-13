@@ -173,3 +173,26 @@ CREATE TABLE saved_products (
     itemID INTEGER NOT NULL,
     userID INTEGER NOT NULL
 );
+
+  -- Product Ratings Table
+CREATE TABLE product_ratings (
+    itemID INTEGER PRIMARY KEY,
+    no1Stars INTEGER DEFAULT 0 NOT NULL CHECK (no1Stars >= 0),
+    no2Stars INTEGER DEFAULT 0 NOT NULL CHECK (no2Stars >= 0),
+    no3Stars INTEGER DEFAULT 0 NOT NULL CHECK (no3Stars >= 0),
+    no4Stars INTEGER DEFAULT 0 NOT NULL CHECK (no4Stars >= 0),
+    no5Stars INTEGER DEFAULT 0 NOT NULL CHECK (no5Stars >= 0)
+);
+-- Product Review Table
+CREATE TABLE product_reviews (
+    reviewID INT IDENTITY(1,1) PRIMARY KEY,
+    itemID INTEGER NOT NULL,
+    userID INTEGER NOT NULL,
+    userRating INTEGER NOT NULL CHECK (userRating BETWEEN 1 AND 5),
+    userComment TEXT,
+    commentLikes INTEGER DEFAULT 0 NOT NULL CHECK (commentLikes >= 0),
+    commentDislikes INTEGER DEFAULT 0 NOT NULL CHECK (commentDislikes >= 0),
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
+
+);
+

@@ -1479,6 +1479,7 @@ class WardernDatabase:
                     i.itemID,
                     i.itemName,
                     i.itemPrice,
+                    i.itemRating,
                     i.itemDescription,
                     i.quantityAvailable,
                     i.itemImage,
@@ -1507,19 +1508,20 @@ class WardernDatabase:
                     'id': row[0],
                     'itemName': row[1],
                     'itemPrice': float(row[2]),
-                    'itemDescription': row[3],
-                    'quantityAvailable': row[4],
-                    'itemImage': base64.b64encode(row[5]).decode('utf-8') if row[5] else None,
-                    'ownerId': row[6],
-                    'salePercentage': row[7],
-                    'minimumBulkAmount': row[8],
-                    'category': row[9],
-                    'metricSystem': row[10],
+                    'itemRating': float(row[3]),
+                    'itemDescription': row[4],
+                    'quantityAvailable': row[5],
+                    'itemImage': base64.b64encode(row[6]).decode('utf-8') if row[6] else None,
+                    'ownerId': row[7],
+                    'salePercentage': row[8],
+                    'minimumBulkAmount': row[9],
+                    'category': row[10],
+                    'metricSystem': row[11],
                     'ownerDetails': {
-                        'firstName': row[11],
-                        'lastName': row[12],
-                        'userName': row[13],
-                        'userType':row[14]
+                        'firstName': row[12],
+                        'lastName': row[13],
+                        'userName': row[14],
+                        'userType':row[15]
                     }
                 }
                 products.append(product)
@@ -1722,4 +1724,389 @@ class WardernDatabase:
             return True, "Product removed successfully"
             
      except Exception as e:
+        return False, str(e)
+     
+    def save_product_review(self, item_id, user_id, rating, comment):
+     try:
+        with pyodbc.connect(self.conn_str) as conn:
+            cursor = conn.cursor()
+            
+            # Start transaction
+            cursor.execute("BEGIN TRANSACTION")
+            
+            try:
+                # Check if review already exists
+                check_query = """
+                    SELECT reviewID, userRating 
+                    FROM product_reviews 
+                    WHERE itemID = ? AND userID = ?
+                """
+                cursor.execute(check_query, (item_id, user_id))
+                existing_review = cursor.fetchone()
+                
+                if existing_review:
+                    # Update existing review and adjust ratings
+                    old_rating = existing_review[1]
+                    
+                    # Decrease old rating count
+                    cursor.execute(f"""
+                        UPDATE product_ratings 
+                        SET no{old_rating}Stars = no{old_rating}Stars - 1
+                        WHERE itemID = ?
+                    """, (item_id,))
+                    
+                    # Update the review
+                    cursor.execute("""
+                        UPDATE product_reviews 
+                        SET userRating = ?, userComment = ?, timestamp = CURRENT_TIMESTAMP
+                        WHERE itemID = ? AND userID = ?
+                    """, (rating, comment, item_id, user_id))
+                    
+                else:
+                    # Check if product exists in product_ratings
+                    cursor.execute("""
+                        IF NOT EXISTS (SELECT 1 FROM product_ratings WHERE itemID = ?)
+                        INSERT INTO product_ratings (itemID, no1Stars, no2Stars, no3Stars, no4Stars, no5Stars)
+                        VALUES (?, 0, 0, 0, 0, 0)
+                    """, (item_id, item_id))
+                    
+                    # Insert new review
+                    cursor.execute("""
+                        INSERT INTO product_reviews (itemID, userID, userRating, userComment)
+                        VALUES (?, ?, ?, ?)
+                    """, (item_id, user_id, rating, comment))
+                
+                # Increase new rating count
+                cursor.execute(f"""
+                    UPDATE product_ratings 
+                    SET no{rating}Stars = no{rating}Stars + 1
+                    WHERE itemID = ?
+                """, (item_id,))
+                
+                # Calculate and update average rating
+                cursor.execute("""
+                    WITH RatingStats AS (
+                        SELECT 
+                            itemID,
+                            CAST((no1Stars * 1 + no2Stars * 2 + no3Stars * 3 + no4Stars * 4 + no5Stars * 5) AS FLOAT) /
+                            NULLIF(CAST((no1Stars + no2Stars + no3Stars + no4Stars + no5Stars) AS FLOAT), 0) as avg_rating
+                        FROM product_ratings
+                        WHERE itemID = ?
+                    )
+                    UPDATE Items
+                    SET itemRating = rs.avg_rating
+                    FROM Items i
+                    INNER JOIN RatingStats rs ON i.itemID = rs.itemID
+                    WHERE i.itemID = ?
+                """, (item_id, item_id))
+                
+                cursor.execute("COMMIT")
+                return True, "Review saved successfully"
+                
+            except Exception as e:
+                cursor.execute("ROLLBACK")
+                raise e
+            
+     except Exception as e:
+        print(f"Error in save_product_review: {str(e)}")
+        return False, str(e)
+
+    def get_product_reviews(self, item_id):
+     try:
+        with pyodbc.connect(self.conn_str) as conn:
+            cursor = conn.cursor()
+            
+            # Get all reviews for the product with user information
+            query = """
+                SELECT 
+                    pr.reviewID,
+                    pr.itemID,
+                    pr.userID,
+                    pr.userRating,
+                    pr.userComment,
+                    pr.commentLikes,
+                    pr.commentDislikes,
+                    pr.timestamp,
+                    u.FirstName,
+                    u.LastName,
+                    u.ProfilePicture
+                FROM product_reviews pr
+                INNER JOIN Users u ON pr.userID = u.UserId
+                WHERE pr.itemID = ?
+                ORDER BY pr.timestamp DESC
+            """
+            
+            cursor.execute(query, (item_id,))
+            reviews = []
+            
+            for row in cursor.fetchall():
+                review = {
+                    'reviewId': row[0],
+                    'itemId': row[1],
+                    'userId': row[2],
+                    'rating': row[3],
+                    'comment': row[4],
+                    'likes': row[5],
+                    'dislikes': row[6],
+                    'timestamp': row[7].isoformat() if row[7] else None,
+                    'userInfo': {
+                        'name': f"{row[8]} {row[9]}",
+                        'profilePicture': base64.b64encode(row[10]).decode('utf-8') if row[10] else None
+                    }
+                }
+                reviews.append(review)
+            
+            # Get product rating summary
+            summary_query = """
+                SELECT 
+                    no1Stars, no2Stars, no3Stars, no4Stars, no5Stars
+                FROM product_ratings
+                WHERE itemID = ?
+            """
+            
+            cursor.execute(summary_query, (item_id,))
+            rating_row = cursor.fetchone()
+            
+            if rating_row:
+                rating_summary = {
+                    'oneStar': rating_row[0],
+                    'twoStars': rating_row[1],
+                    'threeStars': rating_row[2],
+                    'fourStars': rating_row[3],
+                    'fiveStars': rating_row[4],
+                    'totalReviews': sum(rating_row)
+                }
+            else:
+                rating_summary = {
+                    'oneStar': 0,
+                    'twoStars': 0,
+                    'threeStars': 0,
+                    'fourStars': 0,
+                    'fiveStars': 0,
+                    'totalReviews': 0
+                }
+            
+            return True, {'reviews': reviews, 'summary': rating_summary}
+            
+     except Exception as e:
+        print(f"Error in get_product_reviews: {str(e)}")
+        return False, str(e)
+     
+    def edit_product_review(self, review_id, user_id, rating, comment):
+     try:
+        with pyodbc.connect(self.conn_str) as conn:
+            cursor = conn.cursor()
+            
+            # First get the old review details to update product_ratings
+            get_old_review = """
+                SELECT r.reviewID, r.itemID, r.userRating 
+                FROM product_reviews r
+                WHERE r.reviewID = ? AND r.userID = ?
+            """
+            cursor.execute(get_old_review, (review_id, user_id))
+            old_review = cursor.fetchone()
+            
+            if not old_review:
+                return False, "Review not found or unauthorized"
+                
+            # Start transaction
+            cursor.execute("BEGIN TRANSACTION")
+            
+            try:
+                # Decrease old rating count
+                update_old_rating = """
+                    UPDATE product_ratings 
+                    SET no{}Stars = no{}Stars - 1
+                    WHERE itemID = ?
+                """.format(old_review[2], old_review[2])
+                cursor.execute(update_old_rating, (old_review[1],))
+                
+                # Increase new rating count
+                update_new_rating = """
+                    UPDATE product_ratings 
+                    SET no{}Stars = no{}Stars + 1
+                    WHERE itemID = ?
+                """.format(rating, rating)
+                cursor.execute(update_new_rating, (old_review[1],))
+                
+                # Update the review
+                update_query = """
+                    UPDATE product_reviews 
+                    SET userRating = ?,
+                        userComment = ?,
+                        timestamp = CURRENT_TIMESTAMP
+                    WHERE reviewID = ? AND userID = ?
+                """
+                cursor.execute(update_query, (rating, comment, review_id, user_id))
+                
+                update_avg_rating = """
+                    WITH RatingStats AS (
+                        SELECT 
+                            itemID,
+                            CAST((no1Stars * 1 + no2Stars * 2 + no3Stars * 3 + no4Stars * 4 + no5Stars * 5) AS FLOAT) /
+                            NULLIF(CAST((no1Stars + no2Stars + no3Stars + no4Stars + no5Stars) AS FLOAT), 0) as avg_rating
+                        FROM product_ratings
+                        WHERE itemID = ?
+                    )
+                    UPDATE Items
+                    SET itemRating = COALESCE(rs.avg_rating, 0)
+                    FROM Items i
+                    LEFT JOIN RatingStats rs ON i.itemID = rs.itemID
+                    WHERE i.itemID = ?
+                """
+                cursor.execute(update_avg_rating, (old_review[1], old_review[1]))
+                
+                cursor.execute("COMMIT")
+                return True, "Review updated successfully"
+                
+            except Exception as e:
+                cursor.execute("ROLLBACK")
+                raise e
+            
+     except Exception as e:
+        print(f"Error in edit_product_review: {str(e)}")
+        return False, str(e)
+
+    def update_review_reaction(self, review_id, user_id, reaction_type, is_add):
+     try:
+        with pyodbc.connect(self.conn_str) as conn:
+            cursor = conn.cursor()
+            
+            # Check if review exists
+            check_query = "SELECT reviewID FROM product_reviews WHERE reviewID = ?"
+            cursor.execute(check_query, (review_id,))
+            if not cursor.fetchone():
+                return False, "Review not found"
+            
+            # Update likes or dislikes
+            update_query = """
+                UPDATE product_reviews 
+                SET {}= {} {} 1
+                WHERE reviewID = ?
+            """.format(
+                'commentLikes' if reaction_type == 'like' else 'commentDislikes',
+                'commentLikes' if reaction_type == 'like' else 'commentDislikes',
+                '+' if is_add else '-'
+            )
+            
+            cursor.execute(update_query, (review_id,))
+            conn.commit()
+            
+            return True, "Reaction updated successfully"
+            
+     except Exception as e:
+        print(f"Error in update_review_reaction: {str(e)}")
+        return False, str(e)
+
+    def delete_product_review(self, review_id, user_id):
+     try:
+        with pyodbc.connect(self.conn_str) as conn:
+            cursor = conn.cursor()
+            
+            # Start transaction
+            cursor.execute("BEGIN TRANSACTION")
+            
+            try:
+                # Get review details before deletion
+                cursor.execute("""
+                    SELECT itemID, userRating 
+                    FROM product_reviews 
+                    WHERE reviewID = ? AND userID = ?
+                """, (review_id, user_id))
+                review = cursor.fetchone()
+                
+                if not review:
+                    return False, "Review not found or unauthorized"
+                
+                item_id, rating = review
+                
+                # Decrease rating count
+                cursor.execute(f"""
+                    UPDATE product_ratings 
+                    SET no{rating}Stars = no{rating}Stars - 1
+                    WHERE itemID = ?
+                """, (item_id,))
+                
+                # Delete the review
+                cursor.execute("""
+                    DELETE FROM product_reviews 
+                    WHERE reviewID = ? AND userID = ?
+                """, (review_id, user_id))
+                
+                # Update average rating
+                cursor.execute("""
+                    WITH RatingStats AS (
+                        SELECT 
+                            itemID,
+                            CAST((no1Stars * 1 + no2Stars * 2 + no3Stars * 3 + no4Stars * 4 + no5Stars * 5) AS FLOAT) /
+                            NULLIF(CAST((no1Stars + no2Stars + no3Stars + no4Stars + no5Stars) AS FLOAT), 0) as avg_rating
+                        FROM product_ratings
+                        WHERE itemID = ?
+                    )
+                    UPDATE Items
+                    SET itemRating = COALESCE(rs.avg_rating, 0)
+                    FROM Items i
+                    LEFT JOIN RatingStats rs ON i.itemID = rs.itemID
+                    WHERE i.itemID = ?
+                """, (item_id, item_id))
+                
+                cursor.execute("COMMIT")
+                return True, "Review deleted successfully"
+                
+            except Exception as e:
+                cursor.execute("ROLLBACK")
+                raise e
+            
+     except Exception as e:
+        print(f"Error in delete_product_review: {str(e)}")
+        return False, str(e)
+    
+    def get_single_review(self, review_id):
+     try:
+        with pyodbc.connect(self.conn_str) as conn:
+            cursor = conn.cursor()
+            
+            query = """
+                SELECT 
+                    pr.reviewID,
+                    pr.itemID,
+                    pr.userID,
+                    pr.userRating,
+                    pr.userComment,
+                    pr.commentLikes,
+                    pr.commentDislikes,
+                    pr.timestamp,
+                    u.FirstName,
+                    u.LastName,
+                    u.ProfilePicture
+                FROM product_reviews pr
+                INNER JOIN Users u ON pr.userID = u.UserId
+                WHERE pr.reviewID = ?
+            """
+            
+            cursor.execute(query, (review_id,))
+            row = cursor.fetchone()
+            
+            if not row:
+                return False, "Review not found"
+            
+            review = {
+                'reviewId': row[0],
+                'itemId': row[1],
+                'userId': row[2],
+                'rating': row[3],
+                'comment': row[4],
+                'likes': row[5],
+                'dislikes': row[6],
+                'timestamp': row[7].isoformat() if row[7] else None,
+                'userInfo': {
+                    'name': f"{row[8]} {row[9]}",
+                    'profilePicture': base64.b64encode(row[10]).decode('utf-8') if row[10] else None
+                }
+            }
+            
+            return True, review
+            
+     except Exception as e:
+        print(f"Error in get_single_review: {str(e)}")
         return False, str(e)

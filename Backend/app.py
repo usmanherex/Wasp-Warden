@@ -1064,5 +1064,192 @@ def remove_saved_product(user_id, item_id):
             'success': False,
             'message': str(e)
         }), 500
+
+
+@app.route('/products/<int:item_id>/reviews', methods=['GET', 'POST'])
+def handle_product_reviews(item_id):
+    try:
+        if request.method == 'POST':
+            # Get review data from request
+            data = request.get_json()
+            user_id = data.get('userId')
+            rating = data.get('rating')
+            comment = data.get('comment')
+            
+            # Validate required fields
+            if not all([user_id, rating]):
+                return jsonify({
+                    'success': False,
+                    'message': 'Missing required fields'
+                }), 400
+            
+            # Validate rating range
+            if not (1 <= rating <= 5):
+                return jsonify({
+                    'success': False,
+                    'message': 'Rating must be between 1 and 5'
+                }), 400
+            
+            success, result = db.save_product_review(item_id, user_id, rating, comment)
+            
+            if success:
+                return jsonify({
+                    'success': True,
+                    'message': result
+                })
+            return jsonify({
+                'success': False,
+                'message': result
+            }), 500
+            
+        else:  # GET request
+            success, result = db.get_product_reviews(item_id)
+            
+            if success:
+                return jsonify({
+                    'success': True,
+                    'data': result
+                })
+            return jsonify({
+                'success': False,
+                'message': result
+            }), 500
+            
+    except Exception as e:
+        print(f"Error in handle_product_reviews: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+    
+@app.route('/products/reviews/<int:review_id>', methods=['PUT', 'DELETE'])
+def handle_review_edit_delete(review_id):
+    try:
+        # Get user ID from request data
+        data = request.get_json()
+        user_id = data.get('userId')
+        
+        if not user_id:
+            return jsonify({
+                'success': False,
+                'message': 'User ID is required'
+            }), 400
+        
+        if request.method == 'PUT':
+            # Get updated review data
+            rating = data.get('rating')
+            comment = data.get('comment')
+            
+            # Validate required fields
+            if rating is None:
+                return jsonify({
+                    'success': False,
+                    'message': 'Rating is required'
+                }), 400
+                
+            # Validate rating range
+            if not (1 <= rating <= 5):
+                return jsonify({
+                    'success': False,
+                    'message': 'Rating must be between 1 and 5'
+                }), 400
+            
+            success, result = db.edit_product_review(review_id, user_id, rating, comment)
+            
+            if success:
+                return jsonify({
+                    'success': True,
+                    'message': result
+                })
+            return jsonify({
+                'success': False,
+                'message': result
+            }), 403 if "unauthorized" in result.lower() else 500
+            
+        else:  # DELETE request
+            success, result = db.delete_product_review(review_id, user_id)
+            
+            if success:
+                return jsonify({
+                    'success': True,
+                    'message': result
+                })
+            return jsonify({
+                'success': False,
+                'message': result
+            }), 403 if "unauthorized" in result.lower() else 500
+            
+    except Exception as e:
+        print(f"Error in handle_review_edit_delete: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+# Optional: Route for getting a single review
+@app.route('/products/reviews/<int:review_id>', methods=['GET'])
+def get_single_review(review_id):
+    try:
+        success, result = db.get_single_review(review_id)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'data': result
+            })
+        return jsonify({
+            'success': False,
+            'message': result
+        }), 404 if result == "Review not found" else 500
+            
+    except Exception as e:
+        print(f"Error in get_single_review route: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/products/reviews/<int:review_id>/reaction', methods=['POST'])
+def handle_review_reaction(review_id):
+    data = request.get_json()
+    print(data)
+    try:
+        
+       
+        user_id = data.get('userId')
+        reaction_type = data.get('type')  # 'like' or 'dislike'
+        is_add = data.get('isAdd')  # True to add, False to remove
+        print(review_id, user_id, reaction_type, is_add)
+        if not all([review_id, user_id, reaction_type, is_add is not None]):
+            return jsonify({
+                'success': False,
+                'message': 'Missing required fields'
+            }), 400
+            
+        success, result = db.update_review_reaction(review_id, user_id, reaction_type, is_add)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': result
+            })
+        return jsonify({
+            'success': False,
+            'message': result
+        }), 404 if "not found" in result.lower() else 500
+            
+    except Exception as e:
+        print(f"Error in handle_review_reaction: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+
+
+
+
+
+
 if __name__ == '__main__':
     socketio.run(app, debug=True)
