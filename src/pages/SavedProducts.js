@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useParams,useNavigate  } from "react-router-dom";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -9,7 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../components/ui/AlertDialog";
-import { toast } from "../components/ui/Toast";
+import { toast } from "react-toastify";
 import {
   Search,
   Heart,
@@ -152,11 +153,15 @@ const ReviewsTab = ({
         onReviewsUpdate();
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load reviews",
-        variant: "destructive",
-      });
+   
+      toast.error("Failed to load reviews", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+    });
     } finally {
       setLoading(false);
     }
@@ -181,18 +186,27 @@ const ReviewsTab = ({
 
       const data = await response.json();
       if (data.success) {
-        toast({
-          title: "Success",
-          description: "Review submitted successfully",
-        });
+      
+        toast.success("Review submitted successfully", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+      });
         await fetchReviews();
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to submit review",
-        variant: "destructive",
-      });
+    
+      toast.error("Failed to submit the review", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+    });
     }
   };
 
@@ -215,18 +229,27 @@ const ReviewsTab = ({
 
       const data = await response.json();
       if (data.success) {
-        toast({
-          title: "Success",
-          description: "Review updated successfully",
-        });
+   
+        toast.success("Review updated successfully", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+      });
         await fetchReviews();
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update review",
-        variant: "destructive",
-      });
+    
+      toast.error("Failed to update review", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+    });
     }
   };
 
@@ -247,20 +270,29 @@ const ReviewsTab = ({
 
       const data = await response.json();
       if (data.success) {
-        toast({
-          title: "Success",
-          description: "Review deleted successfully",
-        });
+ 
+        toast.success("Review deleted successfully", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+      });
         await fetchReviews();
         setShowDeleteDialog(false);
         setDeletingReviewId(null);
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete review",
-        variant: "destructive",
-      });
+    
+      toast.error("Failed to delete review", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+    });
     } finally {
       setShowDeleteDialog(false);
       setDeletingReviewId(null);
@@ -324,17 +356,26 @@ const ReviewsTab = ({
           },
         }));
 
-        toast({
-          title: "Success",
-          description: "Reaction updated successfully",
-        });
+   
+        toast.success("Reaction updated successfully", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+      });
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update reaction",
-        variant: "destructive",
-      });
+    
+      toast.error("Failed to update the reaction", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+    });
     }
   };
 
@@ -579,6 +620,93 @@ const ProductPopup = ({ product, onClose, onProductUpdate }) => {
   const reviewFormRef = useRef(null);
   const user = JSON.parse(localStorage.getItem("user"));
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+    const navigate = useNavigate();
+    const handleStartChat = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/start-chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            user1Id: user.userId,
+            user2Id: parseInt(product.ownerId)
+          })
+        });
+  
+        if (!response.ok) {
+          throw new Error('Failed to initialize chat');
+        }
+  
+        const data = await response.json();
+        // Navigate to inbox with the chat ID
+        navigate(`/inbox`);
+      } catch (error) {
+        console.error('Error starting chat:', error);
+        // Handle error appropriately
+      }
+    };
+  const handleAddToCart = async () => {
+      if (isAddingToCart) return;
+  
+      setIsAddingToCart(true);
+      try {
+          const cartData = {
+              userID: user.userId,
+              itemID: product.id,
+              ownerName: `${product.ownerDetails.firstName} ${product.ownerDetails.lastName}`,
+              quantity: quantity,
+              price: product.salePercentage > 0
+                  ? product.itemPrice * (1 - product.salePercentage / 100)
+                  : product.itemPrice,
+          };
+  
+          const response = await fetch("http://localhost:5000/cart/add", {
+              method: "POST",
+              headers: {
+                  "Content-Type": "application/json",
+              },
+              body: JSON.stringify(cartData),
+          });
+  
+          const data = await response.json();
+  
+          if (data.success) {
+              toast.success("Item added to cart successfully", {
+                  position: "top-right",
+                  autoClose: 3000,
+                  hideProgressBar: false,
+                  closeOnClick: true,
+                  pauseOnHover: true,
+                  draggable: true,
+              });
+              onClose();
+          } else {
+              // Handle the error message from the database
+              toast.error(data.error || "Failed to add item to cart", {
+                  position: "top-right",
+                  autoClose: 5000,
+                  hideProgressBar: false,
+                  closeOnClick: true,
+                  pauseOnHover: true,
+                  draggable: true,
+              });
+          }
+      } catch (error) {
+          // Handle network or other errors
+          toast.error(error.message || "Failed to add item to cart", {
+              position: "top-right",
+              autoClose: 5000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+          });
+      } finally {
+          setIsAddingToCart(false);
+      }
+  };
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (popupRef.current && !popupRef.current.contains(event.target)) {
@@ -785,18 +913,53 @@ const ProductPopup = ({ product, onClose, onProductUpdate }) => {
                     {/* Action Buttons */}
                     {user.userType !== "Farmer" && (
                       <div className="space-y-3">
-                        <button className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-xl font-medium transition-colors">
-                          Add to Cart ({quantity} {product.metricSystem})
+                          <button
+                          className={`w-full ${
+                            isAddingToCart
+                              ? "bg-gray-400 cursor-not-allowed"
+                              : "bg-green-500 hover:bg-green-600"
+                          } text-white py-3 rounded-xl font-medium transition-colors`}
+                          onClick={handleAddToCart}
+                          disabled={isAddingToCart}
+                        >
+                          {isAddingToCart ? (
+                            <span className="flex items-center justify-center">
+                              <svg
+                                className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                              >
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                ></circle>
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                ></path>
+                              </svg>
+                              Adding to Cart...
+                            </span>
+                          ) : (
+                            `Add to Cart (${quantity} ${product.metricSystem})`
+                          )}
                         </button>
+
 
                         <div className="grid grid-cols-2 gap-3">
                           <button className="flex items-center justify-center gap-2 border-2 border-green-500 text-green-500 hover:bg-green-50 py-3 rounded-xl font-medium transition-colors">
                             <DollarSign className="w-5 h-5" />
                             Negotiate
                           </button>
-                          <button className="flex items-center justify-center gap-2 border-2 border-blue-500 text-blue-500 hover:bg-blue-50 py-3 rounded-xl font-medium transition-colors">
+                          <button onClick={handleStartChat}  className="flex items-center justify-center gap-2 border-2 border-blue-500 text-blue-500 hover:bg-blue-50 py-3 rounded-xl font-medium transition-colors">
                             <MessageCircle className="w-5 h-5" />
-                            Message
+                            Message Seller
                           </button>
                         </div>
                       </div>
@@ -919,11 +1082,37 @@ const MarketplaceProductPopup = ({ product, onClose, onProductUpdate }) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const originalPrice = product.price;
   const [activeTab, setActiveTab] = useState("description");
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
   const salePrice =
     product.salePercentage > 0
       ? originalPrice * (1 - product.salePercentage / 100)
       : originalPrice;
-
+    const navigate = useNavigate();
+    const handleStartChat = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/start-chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            user1Id: user.userId,
+            user2Id: parseInt(product.ownerId)
+          })
+        });
+  
+        if (!response.ok) {
+          throw new Error('Failed to initialize chat');
+        }
+  
+        const data = await response.json();
+        // Navigate to inbox with the chat ID
+        navigate(`/inbox`);
+      } catch (error) {
+        console.error('Error starting chat:', error);
+        // Handle error appropriately
+      }
+    };
   const incrementQuantity = () => {
     if (quantity < product.quantityAvailable) {
       setQuantity((prev) => prev + 1);
@@ -980,7 +1169,66 @@ const MarketplaceProductPopup = ({ product, onClose, onProductUpdate }) => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [onClose, showReviewForm, showDeleteDialog]);
-
+   const handleAddToCart = async () => {
+        if (isAddingToCart) return;
+    
+        setIsAddingToCart(true);
+        try {
+            const cartData = {
+                userID: user.userId,
+                itemID: product.itemId,
+                ownerName: `${product.businessInfo.agriBusinessName}`,
+                quantity: quantity,
+                price: product.salePercentage > 0
+                    ? product.price * (1 - product.salePercentage / 100)
+                    : product.price,
+            };
+    
+            const response = await fetch("http://localhost:5000/cart/add", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(cartData),
+            });
+    
+            const data = await response.json();
+    
+            if (data.success) {
+                toast.success("Item added to cart successfully", {
+                    position: "top-right",
+                    autoClose: 3000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                });
+                onClose();
+            } else {
+                // Handle the error message from the database
+                toast.error(data.error || "Failed to add item to cart", {
+                    position: "top-right",
+                    autoClose: 5000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                });
+            }
+        } catch (error) {
+            // Handle network or other errors
+            toast.error(error.message || "Failed to add item to cart", {
+                position: "top-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+            });
+        } finally {
+            setIsAddingToCart(false);
+        }
+    };
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 overflow-y-auto">
       <div className="min-h-screen px-4 py-8 flex items-center justify-center">
@@ -1108,10 +1356,44 @@ const MarketplaceProductPopup = ({ product, onClose, onProductUpdate }) => {
                     {/* Action Buttons */}
                     {userType !== "Agri-business"&& (
                       <div className="space-y-3">
-                       <button className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-xl font-medium transition-colors">
-                    Add to Cart ({quantity})
-                  </button>
-                  <button className="w-full flex items-center justify-center gap-2 border-2 border-blue-500 text-blue-500 hover:bg-blue-50 py-3 rounded-xl font-medium transition-colors">
+                           <button
+                          className={`w-full ${
+                            isAddingToCart
+                              ? "bg-gray-400 cursor-not-allowed"
+                              : "bg-green-500 hover:bg-green-600"
+                          } text-white py-3 rounded-xl font-medium transition-colors`}
+                          onClick={handleAddToCart}
+                          disabled={isAddingToCart}
+                        >
+                          {isAddingToCart ? (
+                            <span className="flex items-center justify-center">
+                              <svg
+                                className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                              >
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                ></circle>
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                ></path>
+                              </svg>
+                              Adding to Cart...
+                            </span>
+                          ) : (
+                            `Add to Cart (${quantity})`
+                          )}
+                        </button>
+                  <button onClick={handleStartChat}  className="w-full flex items-center justify-center gap-2 border-2 border-blue-500 text-blue-500 hover:bg-blue-50 py-3 rounded-xl font-medium transition-colors">
                     <MessageCircle className="w-5 h-5" />
                     Message Seller
                   </button>
@@ -1564,8 +1846,24 @@ const SavedProductsPage = () => {
           setFilteredProducts((prevFiltered) =>
             updateProductsList(prevFiltered)
           );
+           toast.success("Product Removed from Saved Products List Successfully", {
+                      position: "top-right",
+                      autoClose: 3000,
+                      hideProgressBar: false,
+                      closeOnClick: true,
+                      pauseOnHover: true,
+                      draggable: true,
+                  });
         } else {
           console.error("Failed to remove saved product:", data.message);
+           toast.error("Failed to remove the Product from Saved Products List ", {
+                      position: "top-right",
+                      autoClose: 3000,
+                      hideProgressBar: false,
+                      closeOnClick: true,
+                      pauseOnHover: true,
+                      draggable: true,
+                  });
         }
       } else {
         const response = await fetch("http://localhost:5000/savedproducts", {
@@ -1589,12 +1887,36 @@ const SavedProductsPage = () => {
           // Refresh products list to include newly saved product
           const savedSet = await fetchSavedProducts();
           await fetchProducts(savedSet);
+           toast.success("Product Added to Saved Products List Successfully", {
+                      position: "top-right",
+                      autoClose: 3000,
+                      hideProgressBar: false,
+                      closeOnClick: true,
+                      pauseOnHover: true,
+                      draggable: true,
+                  });
         } else {
           console.error("Failed to save product:", data.message);
+           toast.error("Unable to add the product to Saved Products List", {
+                      position: "top-right",
+                      autoClose: 3000,
+                      hideProgressBar: false,
+                      closeOnClick: true,
+                      pauseOnHover: true,
+                      draggable: true,
+                  });
         }
       }
     } catch (err) {
       console.error("Error toggling saved product:", err);
+      toast.error("Unable to add product to Saved Products List", {
+              position: "top-right",
+              autoClose: 3000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+          });
     }
   };
 

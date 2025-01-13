@@ -196,3 +196,20 @@ CREATE TABLE product_reviews (
 
 );
 
+-- Table to store cart headers/metadata
+CREATE TABLE carts (
+    cartID INT IDENTITY(1,1) PRIMARY KEY,
+    userID INT NOT NULL,
+    created_at DATETIME DEFAULT GETDATE(),
+    updated_at DATETIME DEFAULT GETDATE()
+);
+
+-- Table to store cart items
+CREATE TABLE cart_items (
+    cartID INT,
+    itemID INT,
+    ownerName VARCHAR(100),
+    quantity INT,
+    price DECIMAL(10,2),
+ 
+);

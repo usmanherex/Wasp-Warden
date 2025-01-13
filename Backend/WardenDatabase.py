@@ -2110,3 +2110,168 @@ class WardernDatabase:
      except Exception as e:
         print(f"Error in get_single_review: {str(e)}")
         return False, str(e)
+    # Database functions
+    
+    def add_cart_item(self, data):
+     try:
+        with pyodbc.connect(self.conn_str) as conn:
+            cursor = conn.cursor()
+            
+            # First, check if user has an active cart
+            cart_query = """
+                SELECT cartID FROM carts 
+                WHERE userID = ?
+                ORDER BY created_at DESC
+            """
+            cursor.execute(cart_query, (data['userID'],))
+            cart_row = cursor.fetchone()
+            
+            if not cart_row:
+                # Create new cart if none exists
+                cart_insert = "INSERT INTO carts (userID) VALUES (?)"
+                cursor.execute(cart_insert, (data['userID'],))
+                cursor.execute("SELECT @@IDENTITY")
+                cart_id = cursor.fetchone()[0]
+            else:
+                cart_id = cart_row[0]
+            
+            # Check available quantity
+            quantity_query = """
+                SELECT quantityAvailable 
+                FROM Items 
+                WHERE itemID = ?
+            """
+            cursor.execute(quantity_query, (data['itemID'],))
+            available_qty = cursor.fetchone()
+            
+            if not available_qty:
+                return False, "Item not found"
+                
+            available_qty = available_qty[0]
+            
+            # Check if item already exists in cart
+            existing_item_query = """
+                SELECT quantity 
+                FROM cart_items 
+                WHERE cartID = ? AND itemID = ?
+            """
+            cursor.execute(existing_item_query, (cart_id, data['itemID']))
+            existing_item = cursor.fetchone()
+            
+            total_quantity = data['quantity']
+            if existing_item:
+                total_quantity += existing_item[0]
+            
+            # Verify total quantity doesn't exceed available quantity
+            if total_quantity > available_qty:
+                return False, f"Cannot add {data['quantity']} items. Only {available_qty - (existing_item[0] if existing_item else 0)} more available"
+            
+            if existing_item:
+                # Update existing cart item
+                update_query = """
+                    UPDATE cart_items 
+                    SET quantity = ?, 
+                        price = ?
+                    WHERE cartID = ? AND itemID = ?
+                """
+                cursor.execute(update_query, (
+                    total_quantity,
+                    data['price'],
+                    cart_id,
+                    data['itemID']
+                ))
+            else:
+                # Add new item to cart
+                item_query = """
+                    INSERT INTO cart_items (cartID, itemID, ownerName, quantity, price)
+                    VALUES (?, ?, ?, ?, ?)
+                """
+                cursor.execute(item_query, (
+                    cart_id,
+                    data['itemID'],
+                    data['ownerName'],
+                    data['quantity'],
+                    data['price']
+                ))
+            
+            conn.commit()
+            return True, {"cartID": cart_id}
+            
+     except Exception as e:
+        print(f"Error in add_cart_item: {str(e)}")
+        return False, str(e)
+
+    def delete_cart_item(self, cart_id, item_id):
+     try:
+        with pyodbc.connect(self.conn_str) as conn:
+            cursor = conn.cursor()
+            
+            # Check if item exists in cart
+            check_query = """
+                SELECT COUNT(*) FROM cart_items 
+                WHERE cartID = ? AND itemID = ?
+            """
+            cursor.execute(check_query, (cart_id, item_id))
+            if cursor.fetchone()[0] == 0:
+                return False, "Item not found in cart"
+            
+            # Delete item
+            delete_query = """
+                DELETE FROM cart_items 
+                WHERE cartID = ? AND itemID = ?
+            """
+            cursor.execute(delete_query, (cart_id, item_id))
+            
+            conn.commit()
+            return True, None
+            
+     except Exception as e:
+        print(f"Error in delete_cart_item: {str(e)}")
+        return False, str(e)
+
+    def get_user_cart_items(self, user_id):
+     try:
+        with pyodbc.connect(self.conn_str) as conn:
+            cursor = conn.cursor()
+            
+            query = """
+                SELECT 
+                    ci.cartID,
+                    ci.itemID,
+                    ci.ownerName,
+                    ci.quantity,
+                    ci.price,
+                    c.created_at,
+                    c.updated_at,
+                    i.itemName,
+                    i.itemImage
+                FROM cart_items ci
+                INNER JOIN carts c ON ci.cartID = c.cartID
+                INNER JOIN Items i ON ci.itemID = i.itemID
+                WHERE c.userID = ?
+                ORDER BY c.created_at DESC
+            """
+            
+            cursor.execute(query, (user_id,))
+            rows = cursor.fetchall()
+            
+            if not rows:
+                return False, "No cart found for user"
+            
+            cart_items = [{
+                'cartId': row[0],
+                'itemId': row[1],
+                'ownerName': row[2],
+                'quantity': row[3],
+                'price': float(row[4]),
+                'createdAt': row[5].isoformat() if row[5] else None,
+                'updatedAt': row[6].isoformat() if row[6] else None,
+                'itemName': row[7],
+                'itemImage': base64.b64encode(row[8]).decode('utf-8') if row[8] else None
+            } for row in rows]
+            
+            return True, cart_items
+            
+     except Exception as e:
+        print(f"Error in get_user_cart_items: {str(e)}")
+        return False, str(e)

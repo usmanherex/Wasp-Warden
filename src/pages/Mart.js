@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { 
+import { useParams,useNavigate  } from "react-router-dom";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -9,7 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../components/ui/AlertDialog";
-import { toast } from '../components/ui/Toast';
+import { toast } from "react-toastify";
 import {
   Search,
   Heart,
@@ -20,11 +21,10 @@ import {
   Plus,
   X,
   ThumbsUp,
-  ThumbsDown,Edit2, Trash2
+  ThumbsDown,
+  Edit2,
+  Trash2,
 } from "lucide-react";
-
-
-
 
 const ReviewStars = ({ rating, size = "small", onClick = null }) => (
   <div className="flex">
@@ -40,14 +40,14 @@ const ReviewStars = ({ rating, size = "small", onClick = null }) => (
   </div>
 );
 
-const ReviewForm = ({ 
-  initialReview = { rating: 5, comment: "" }, 
-  onSubmit, 
-  onClose, 
-  isEdit = false 
+const ReviewForm = ({
+  initialReview = { rating: 5, comment: "" },
+  onSubmit,
+  onClose,
+  isEdit = false,
 }) => {
   const [review, setReview] = useState(initialReview);
-  
+
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit(review);
@@ -61,11 +61,11 @@ const ReviewForm = ({
     >
       <div
         className="bg-white rounded-xl p-6 max-w-md w-full"
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-bold">
-            {isEdit ? 'Edit Review' : 'Write a Review'}
+            {isEdit ? "Edit Review" : "Write a Review"}
           </h3>
           <button
             onClick={onClose}
@@ -83,7 +83,7 @@ const ReviewForm = ({
             <ReviewStars
               rating={review.rating}
               size="large"
-              onClick={(rating) => setReview(prev => ({ ...prev, rating }))}
+              onClick={(rating) => setReview((prev) => ({ ...prev, rating }))}
             />
           </div>
 
@@ -95,10 +95,12 @@ const ReviewForm = ({
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 h-32 resize-none"
               placeholder="Share your experience with this product..."
               value={review.comment}
-              onChange={(e) => setReview(prev => ({
-                ...prev,
-                comment: e.target.value,
-              }))}
+              onChange={(e) =>
+                setReview((prev) => ({
+                  ...prev,
+                  comment: e.target.value,
+                }))
+              }
               required
             />
           </div>
@@ -107,14 +109,20 @@ const ReviewForm = ({
             type="submit"
             className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg font-medium transition-colors"
           >
-            {isEdit ? 'Update Review' : 'Submit Review'}
+            {isEdit ? "Update Review" : "Submit Review"}
           </button>
         </form>
       </div>
     </div>
   );
 };
-const ReviewsTab = ({ product, user,showDeleteDialog, setShowDeleteDialog, onReviewsUpdate }) => {
+const ReviewsTab = ({
+  product,
+  user,
+  showDeleteDialog,
+  setShowDeleteDialog,
+  onReviewsUpdate,
+}) => {
   const [reviews, setReviews] = useState([]);
   const [reviewSummary, setReviewSummary] = useState(null);
   const [showReviewForm, setShowReviewForm] = useState(false);
@@ -129,7 +137,9 @@ const ReviewsTab = ({ product, user,showDeleteDialog, setShowDeleteDialog, onRev
 
   const fetchReviews = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/products/${product.id}/reviews`);
+      const response = await fetch(
+        `http://localhost:5000/products/${product.id}/reviews`
+      );
       const data = await response.json();
       if (data.success) {
         setReviews(data.data.reviews);
@@ -137,11 +147,14 @@ const ReviewsTab = ({ product, user,showDeleteDialog, setShowDeleteDialog, onRev
         onReviewsUpdate();
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load reviews",
-        variant: "destructive"
-      });
+      toast.error("Failed to load reviews", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+    });
     } finally {
       setLoading(false);
     }
@@ -149,94 +162,130 @@ const ReviewsTab = ({ product, user,showDeleteDialog, setShowDeleteDialog, onRev
 
   const handleSubmitReview = async (reviewData) => {
     try {
-      const response = await fetch(`http://localhost:5000/products/${product.id}/reviews`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: user.userId,
-          rating: reviewData.rating,
-          comment: reviewData.comment
-        }),
-      });
-      
+      const response = await fetch(
+        `http://localhost:5000/products/${product.id}/reviews`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userId: user.userId,
+            rating: reviewData.rating,
+            comment: reviewData.comment,
+          }),
+        }
+      );
+
       const data = await response.json();
       if (data.success) {
-        toast({
-          title: "Success",
-          description: "Review submitted successfully"
-        });
+      
+        toast.success("Review submitted successfully", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+      });
         await fetchReviews();
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to submit review",
-        variant: "destructive"
-      });
+     
+      toast.error("Failed to submit review", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+    });
     }
   };
 
   const handleEditReview = async (reviewData) => {
     try {
-      const response = await fetch(`http://localhost:5000/products/reviews/${editingReview.reviewId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: user.userId,
-          rating: reviewData.rating,
-          comment: reviewData.comment
-        }),
-      });
-      
+      const response = await fetch(
+        `http://localhost:5000/products/reviews/${editingReview.reviewId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userId: user.userId,
+            rating: reviewData.rating,
+            comment: reviewData.comment,
+          }),
+        }
+      );
+
       const data = await response.json();
       if (data.success) {
-        toast({
-          title: "Success",
-          description: "Review updated successfully"
-        });
-      await  fetchReviews();
+       
+        toast.success("Review updated successfully", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+      });
+        await fetchReviews();
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update review",
-        variant: "destructive"
-      });
+      
+      toast.error("Failed to update review", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+    });
     }
   };
 
   const handleDeleteReview = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/products/reviews/${deletingReviewId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: user.userId
-        }),
-      });
-      
+      const response = await fetch(
+        `http://localhost:5000/products/reviews/${deletingReviewId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userId: user.userId,
+          }),
+        }
+      );
+
       const data = await response.json();
       if (data.success) {
-        toast({
-          title: "Success",
-          description: "Review deleted successfully"
-        });
+        
+        toast.success("Review Deleted successfully", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+      });
         await fetchReviews();
         setShowDeleteDialog(false);
         setDeletingReviewId(null);
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete review",
-        variant: "destructive"
-      });
+ 
+      toast.error("Failed to delete review", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+    });
     } finally {
       setShowDeleteDialog(false);
       setDeletingReviewId(null);
@@ -250,60 +299,76 @@ const ReviewsTab = ({ product, user,showDeleteDialog, setShowDeleteDialog, onRev
     setDeletingReviewId(reviewId);
     setShowDeleteDialog(true);
   };
- 
+
   const handleReaction = async (reviewId, reactionType, isAdd) => {
     try {
-      const response = await fetch(`http://localhost:5000/products/reviews/${reviewId}/reaction`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          reviewId,
-          userId: user.userId,
-          type: reactionType,
-          isAdd
-        }),
-      });
-      
+      const response = await fetch(
+        `http://localhost:5000/products/reviews/${reviewId}/reaction`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            reviewId,
+            userId: user.userId,
+            type: reactionType,
+            isAdd,
+          }),
+        }
+      );
+
       const data = await response.json();
       if (data.success) {
         // Update local state to reflect the change
-        setReviews(reviews.map(review => {
-          if (review.reviewId === reviewId) {
-            return {
-              ...review,
-              likes: reactionType === 'like' 
-                ? review.likes + (isAdd ? 1 : -1)
-                : review.likes,
-              dislikes: reactionType === 'dislike'
-                ? review.dislikes + (isAdd ? 1 : -1)
-                : review.dislikes
-            };
-          }
-          return review;
-        }));
-        
+        setReviews(
+          reviews.map((review) => {
+            if (review.reviewId === reviewId) {
+              return {
+                ...review,
+                likes:
+                  reactionType === "like"
+                    ? review.likes + (isAdd ? 1 : -1)
+                    : review.likes,
+                dislikes:
+                  reactionType === "dislike"
+                    ? review.dislikes + (isAdd ? 1 : -1)
+                    : review.dislikes,
+              };
+            }
+            return review;
+          })
+        );
+
         // Update user reactions state
-        setUserReactions(prev => ({
+        setUserReactions((prev) => ({
           ...prev,
           [reviewId]: {
             ...prev[reviewId],
-            [reactionType]: isAdd
-          }
+            [reactionType]: isAdd,
+          },
         }));
-        
-        toast({
-          title: "Success",
-          description: "Reaction updated successfully"
-        });
+
+     
+        toast.success("Reaction updated successfully", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+      });
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update reaction",
-        variant: "destructive"
-      });
+      
+      toast.error("Failed to update reaction", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+    });
     }
   };
 
@@ -311,9 +376,7 @@ const ReviewsTab = ({ product, user,showDeleteDialog, setShowDeleteDialog, onRev
     return <div className="flex justify-center p-8">Loading reviews...</div>;
   }
 
-  
   return (
-  
     <div className="space-y-6">
       {/* Reviews Summary */}
       <div className="bg-gray-50 p-6 rounded-xl flex items-start gap-6">
@@ -335,12 +398,29 @@ const ReviewsTab = ({ product, user,showDeleteDialog, setShowDeleteDialog, onRev
                 <div
                   className="h-full bg-yellow-400 rounded-full"
                   style={{
-                    width: `${reviewSummary ? 
-                      (rating === 5 ? (reviewSummary.fiveStars / reviewSummary.totalReviews * 100) :
-                       rating === 4 ? (reviewSummary.fourStars / reviewSummary.totalReviews * 100) :
-                       rating === 3 ? (reviewSummary.threeStars / reviewSummary.totalReviews * 100) :
-                       rating === 2 ? (reviewSummary.twoStars / reviewSummary.totalReviews * 100) :
-                       (reviewSummary.oneStar / reviewSummary.totalReviews * 100)) : 0}%`
+                    width: `${
+                      reviewSummary
+                        ? rating === 5
+                          ? (reviewSummary.fiveStars /
+                              reviewSummary.totalReviews) *
+                            100
+                          : rating === 4
+                          ? (reviewSummary.fourStars /
+                              reviewSummary.totalReviews) *
+                            100
+                          : rating === 3
+                          ? (reviewSummary.threeStars /
+                              reviewSummary.totalReviews) *
+                            100
+                          : rating === 2
+                          ? (reviewSummary.twoStars /
+                              reviewSummary.totalReviews) *
+                            100
+                          : (reviewSummary.oneStar /
+                              reviewSummary.totalReviews) *
+                            100
+                        : 0
+                    }%`,
                   }}
                 />
               </div>
@@ -394,36 +474,40 @@ const ReviewsTab = ({ product, user,showDeleteDialog, setShowDeleteDialog, onRev
             </div>
             <p className="text-gray-600 my-2">{review.comment}</p>
             <div className="flex gap-4 text-sm text-gray-500">
-            <button 
-        onClick={() => handleReaction(
-          review.reviewId, 
-          'like', 
-          !userReactions[review.reviewId]?.like
-        )}
-        className={`flex items-center gap-1 transition-colors ${
-          userReactions[review.reviewId]?.like 
-            ? 'text-green-500' 
-            : 'hover:text-green-500'
-        }`}
-      >
-        <ThumbsUp className="w-4 h-4" />
-        Helpful ({review.likes})
-      </button>
-      <button 
-        onClick={() => handleReaction(
-          review.reviewId, 
-          'dislike', 
-          !userReactions[review.reviewId]?.dislike
-        )}
-        className={`flex items-center gap-1 transition-colors ${
-          userReactions[review.reviewId]?.dislike 
-            ? 'text-red-500' 
-            : 'hover:text-red-500'
-        }`}
-      >
-        <ThumbsDown className="w-4 h-4" />
-        Not Helpful ({review.dislikes})
-      </button>
+              <button
+                onClick={() =>
+                  handleReaction(
+                    review.reviewId,
+                    "like",
+                    !userReactions[review.reviewId]?.like
+                  )
+                }
+                className={`flex items-center gap-1 transition-colors ${
+                  userReactions[review.reviewId]?.like
+                    ? "text-green-500"
+                    : "hover:text-green-500"
+                }`}
+              >
+                <ThumbsUp className="w-4 h-4" />
+                Helpful ({review.likes})
+              </button>
+              <button
+                onClick={() =>
+                  handleReaction(
+                    review.reviewId,
+                    "dislike",
+                    !userReactions[review.reviewId]?.dislike
+                  )
+                }
+                className={`flex items-center gap-1 transition-colors ${
+                  userReactions[review.reviewId]?.dislike
+                    ? "text-red-500"
+                    : "hover:text-red-500"
+                }`}
+              >
+                <ThumbsDown className="w-4 h-4" />
+                Not Helpful ({review.dislikes})
+              </button>
             </div>
           </div>
         ))}
@@ -442,7 +526,7 @@ const ReviewsTab = ({ product, user,showDeleteDialog, setShowDeleteDialog, onRev
         <ReviewForm
           initialReview={{
             rating: editingReview.rating,
-            comment: editingReview.comment
+            comment: editingReview.comment,
           }}
           onSubmit={handleEditReview}
           onClose={() => setEditingReview(null)}
@@ -451,8 +535,8 @@ const ReviewsTab = ({ product, user,showDeleteDialog, setShowDeleteDialog, onRev
       )}
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog 
-        open={showDeleteDialog} 
+      <AlertDialog
+        open={showDeleteDialog}
         onOpenChange={(open) => {
           if (!open) {
             setDeletingReviewId(null);
@@ -464,11 +548,12 @@ const ReviewsTab = ({ product, user,showDeleteDialog, setShowDeleteDialog, onRev
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Review</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this review? This action cannot be undone.
+              Are you sure you want to delete this review? This action cannot be
+              undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel 
+            <AlertDialogCancel
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -493,7 +578,6 @@ const ReviewsTab = ({ product, user,showDeleteDialog, setShowDeleteDialog, onRev
       </AlertDialog>
     </div>
   );
-
 };
 const ProductPopup = ({ product, onClose, onProductUpdate }) => {
   const [quantity, setQuantity] = useState(product.minimumBulkAmount);
@@ -504,18 +588,46 @@ const ProductPopup = ({ product, onClose, onProductUpdate }) => {
   const reviewFormRef = useRef(null);
   const user = JSON.parse(localStorage.getItem("user"));
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+    const navigate = useNavigate();
+    const handleStartChat = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/start-chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            user1Id: user.userId,
+            user2Id: parseInt(product.ownerId)
+          })
+        });
+  
+        if (!response.ok) {
+          throw new Error('Failed to initialize chat');
+        }
+  
+        const data = await response.json();
+        // Navigate to inbox with the chat ID
+        navigate(`/inbox`);
+      } catch (error) {
+        console.error('Error starting chat:', error);
+        // Handle error appropriately
+      }
+    };
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (popupRef.current && !popupRef.current.contains(event.target)) {
         // Don't close if any modal is open
-        const isReviewFormOpen = showReviewForm && 
-          reviewFormRef.current && 
+        const isReviewFormOpen =
+          showReviewForm &&
+          reviewFormRef.current &&
           reviewFormRef.current.contains(event.target);
-        
+
         // Check if clicking on delete dialog
         const deleteDialog = document.querySelector('[role="dialog"]');
         const isClickingDeleteDialog = deleteDialog?.contains(event.target);
-        
+
         // Only close if we're not interacting with any modal
         if (!isReviewFormOpen && !isClickingDeleteDialog && !showDeleteDialog) {
           onClose();
@@ -526,7 +638,7 @@ const ProductPopup = ({ product, onClose, onProductUpdate }) => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [onClose, showReviewForm, showDeleteDialog]);
-
+ 
   // Quantity control functions remain the same...
   const incrementQuantity = () => {
     if (quantity < product.quantityAvailable) {
@@ -567,7 +679,66 @@ const ProductPopup = ({ product, onClose, onProductUpdate }) => {
   const handleReviewFormClick = (e) => {
     e.stopPropagation(); // Prevent click from reaching the background
   };
+  const handleAddToCart = async () => {
+    if (isAddingToCart) return;
 
+    setIsAddingToCart(true);
+    try {
+        const cartData = {
+            userID: user.userId,
+            itemID: product.id,
+            ownerName: `${product.ownerDetails.firstName} ${product.ownerDetails.lastName}`,
+            quantity: quantity,
+            price: product.salePercentage > 0
+                ? product.itemPrice * (1 - product.salePercentage / 100)
+                : product.itemPrice,
+        };
+
+        const response = await fetch("http://localhost:5000/cart/add", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(cartData),
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            toast.success("Item added to cart successfully", {
+                position: "top-right",
+                autoClose: 3000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+            });
+            onClose();
+        } else {
+            // Handle the error message from the database
+            toast.error(data.error || "Failed to add item to cart", {
+                position: "top-right",
+                autoClose: 5000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+            });
+        }
+    } catch (error) {
+        // Handle network or other errors
+        toast.error(error.message || "Failed to add item to cart", {
+            position: "top-right",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+        });
+    } finally {
+        setIsAddingToCart(false);
+    }
+};
   // Price calculations remain the same...
   const originalPrice = product.itemPrice;
   const salePrice =
@@ -643,7 +814,7 @@ const ProductPopup = ({ product, onClose, onProductUpdate }) => {
               {/* Tabs */}
               <div className="border-b sticky top-0 bg-white pt-2">
                 <div className="flex space-x-8">
-                  {["description","seller", "reviews"].map((tab) => (
+                  {["description", "seller", "reviews"].map((tab) => (
                     <button
                       key={tab}
                       onClick={() => setActiveTab(tab)}
@@ -659,99 +830,139 @@ const ProductPopup = ({ product, onClose, onProductUpdate }) => {
                 </div>
               </div>
               {/* Tab Content */}
-            <div className="min-h-[200px]">
-                           {activeTab === "description" ? (
-                             <div className="space-y-6">
-                               <p className="text-gray-600 leading-relaxed">
-                                 {product.itemDescription}
-                               </p>
-           
-                               {/* Quantity Selector */}
-                               <div className="bg-gray-50 p-4 rounded-xl space-y-3">
-                                 <div className="flex justify-between text-sm text-gray-600">
-                                   <span>
-                                     Minimum: {product.minimumBulkAmount}{" "}
-                                     {product.metricSystem}
-                                   </span>
-                                   <span>
-                                     Available: {product.quantityAvailable}{" "}
-                                     {product.metricSystem}
-                                   </span>
-                                 </div>
-                                 {user.userType !== "Farmer" && (
-                                   <div className="flex items-center space-x-3">
-                                     <button
-                                       onClick={decrementQuantity}
-                                       disabled={quantity <= product.minimumBulkAmount}
-                                       className="p-2 rounded-lg bg-white border hover:bg-gray-50 disabled:opacity-50"
-                                     >
-                                       <Minus className="w-5 h-5" />
-                                     </button>
-                                     <input
-                                       type="number"
-                                       value={quantity}
-                                       onChange={handleQuantityChange}
-                                       className="w-20 text-center border rounded-lg p-2"
-                                       min={product.minimumBulkAmount}
-                                       max={product.quantityAvailable}
-                                     />
-                                     <button
-                                       onClick={incrementQuantity}
-                                       disabled={quantity >= product.quantityAvailable}
-                                       className="p-2 rounded-lg bg-white border hover:bg-gray-50 disabled:opacity-50"
-                                     >
-                                       <Plus className="w-5 h-5" />
-                                     </button>
-                                   </div>
-                                 )}
-                               </div>
-           
-                               {/* Action Buttons */}
-                               {user.userType !== "Farmer" && (
-                                 <div className="space-y-3">
-                                   <button className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-xl font-medium transition-colors">
-                                     Add to Cart ({quantity} {product.metricSystem})
-                                   </button>
-           
-                                   <div className="grid grid-cols-2 gap-3">
-                                     <button className="flex items-center justify-center gap-2 border-2 border-green-500 text-green-500 hover:bg-green-50 py-3 rounded-xl font-medium transition-colors">
-                                       <DollarSign className="w-5 h-5" />
-                                       Negotiate
-                                     </button>
-                                     <button className="flex items-center justify-center gap-2 border-2 border-blue-500 text-blue-500 hover:bg-blue-50 py-3 rounded-xl font-medium transition-colors">
-                                       <MessageCircle className="w-5 h-5" />
-                                       Message
-                                     </button>
-                                   </div>
-                                 </div>
-                               )}
-                             </div>
-                           ) : activeTab === "reviews" ? (
-                            <ReviewsTab product={product} user={user} showDeleteDialog={showDeleteDialog} setShowDeleteDialog={ setShowDeleteDialog} onReviewsUpdate={onProductUpdate} />
-                           ) : activeTab === "seller" ? (
-                             <div className="space-y-6">
-                               <div className="bg-gray-50 rounded-xl p-6">
-                                 <div className="flex items-center space-x-4 mb-4">
-                                   <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                                     <span className="text-2xl font-bold text-green-600">
-                                       {product.ownerDetails.firstName?.charAt(0)}
-                                     </span>
-                                   </div>
-                                   <div>
-                                     <h3 className="text-xl font-bold text-gray-800">
-                                       {product.ownerDetails.firstName && product.ownerDetails.firstName} {product.ownerDetails.lastName && product.ownerDetails.lastName}
-                                     </h3>
-                                     
-                                   </div>
-                                 </div>
-           
-                                
-                               </div>
-                             </div>
-                           ) : (
-                             <p>Invalid Tab</p>
-                           )}
-                         </div>
+              <div className="min-h-[200px]">
+                {activeTab === "description" ? (
+                  <div className="space-y-6">
+                    <p className="text-gray-600 leading-relaxed">
+                      {product.itemDescription}
+                    </p>
+
+                    {/* Quantity Selector */}
+                    <div className="bg-gray-50 p-4 rounded-xl space-y-3">
+                      <div className="flex justify-between text-sm text-gray-600">
+                        <span>
+                          Minimum: {product.minimumBulkAmount}{" "}
+                          {product.metricSystem}
+                        </span>
+                        <span>
+                          Available: {product.quantityAvailable}{" "}
+                          {product.metricSystem}
+                        </span>
+                      </div>
+                      {user.userType !== "Farmer" && (
+                        <div className="flex items-center space-x-3">
+                          <button
+                            onClick={decrementQuantity}
+                            disabled={quantity <= product.minimumBulkAmount}
+                            className="p-2 rounded-lg bg-white border hover:bg-gray-50 disabled:opacity-50"
+                          >
+                            <Minus className="w-5 h-5" />
+                          </button>
+                          <input
+                            type="number"
+                            value={quantity}
+                            onChange={handleQuantityChange}
+                            className="w-20 text-center border rounded-lg p-2"
+                            min={product.minimumBulkAmount}
+                            max={product.quantityAvailable}
+                          />
+                          <button
+                            onClick={incrementQuantity}
+                            disabled={quantity >= product.quantityAvailable}
+                            className="p-2 rounded-lg bg-white border hover:bg-gray-50 disabled:opacity-50"
+                          >
+                            <Plus className="w-5 h-5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Action Buttons */}
+                    {user.userType !== "Farmer" && (
+                      <div className="space-y-3">
+                        <button
+                          className={`w-full ${
+                            isAddingToCart
+                              ? "bg-gray-400 cursor-not-allowed"
+                              : "bg-green-500 hover:bg-green-600"
+                          } text-white py-3 rounded-xl font-medium transition-colors`}
+                          onClick={handleAddToCart}
+                          disabled={isAddingToCart}
+                        >
+                          {isAddingToCart ? (
+                            <span className="flex items-center justify-center">
+                              <svg
+                                className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                              >
+                                <circle
+                                  className="opacity-25"
+                                  cx="12"
+                                  cy="12"
+                                  r="10"
+                                  stroke="currentColor"
+                                  strokeWidth="4"
+                                ></circle>
+                                <path
+                                  className="opacity-75"
+                                  fill="currentColor"
+                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                ></path>
+                              </svg>
+                              Adding to Cart...
+                            </span>
+                          ) : (
+                            `Add to Cart (${quantity} ${product.metricSystem})`
+                          )}
+                        </button>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <button className="flex items-center justify-center gap-2 border-2 border-green-500 text-green-500 hover:bg-green-50 py-3 rounded-xl font-medium transition-colors">
+                            <DollarSign className="w-5 h-5" />
+                            Negotiate
+                          </button>
+                          <button onClick={handleStartChat} className="flex items-center justify-center gap-2 border-2 border-blue-500 text-blue-500 hover:bg-blue-50 py-3 rounded-xl font-medium transition-colors">
+                            <MessageCircle className="w-5 h-5" />
+                            Message Seller
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : activeTab === "reviews" ? (
+                  <ReviewsTab
+                    product={product}
+                    user={user}
+                    showDeleteDialog={showDeleteDialog}
+                    setShowDeleteDialog={setShowDeleteDialog}
+                    onReviewsUpdate={onProductUpdate}
+                  />
+                ) : activeTab === "seller" ? (
+                  <div className="space-y-6">
+                    <div className="bg-gray-50 rounded-xl p-6">
+                      <div className="flex items-center space-x-4 mb-4">
+                        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                          <span className="text-2xl font-bold text-green-600">
+                            {product.ownerDetails.firstName?.charAt(0)}
+                          </span>
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold text-gray-800">
+                            {product.ownerDetails.firstName &&
+                              product.ownerDetails.firstName}{" "}
+                            {product.ownerDetails.lastName &&
+                              product.ownerDetails.lastName}
+                          </h3>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p>Invalid Tab</p>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -853,7 +1064,6 @@ const FarmMarketplace = () => {
         if (data.success) {
           setProducts(data.products);
           setFilteredProducts(data.products);
-          
         }
       } catch (error) {
         console.error("Error fetching products:", error);
@@ -872,10 +1082,12 @@ const FarmMarketplace = () => {
       if (data.success) {
         setProducts(data.products);
         setFilteredProducts(data.products);
-        
+
         // Update selected product with new rating if it exists
         if (selectedProduct) {
-          const updatedProduct = data.products.find(p => p.id === selectedProduct.id);
+          const updatedProduct = data.products.find(
+            (p) => p.id === selectedProduct.id
+          );
           if (updatedProduct) {
             setSelectedProduct(updatedProduct);
           }
@@ -885,20 +1097,24 @@ const FarmMarketplace = () => {
       console.error("Error fetching products:", error);
     }
   };
-    const fetchSavedProducts = async () => {
-      try {
-        const response = await fetch(`http://localhost:5000/savedproducts/${user.userId}`);
-        const data = await response.json();
-        if (data.success) {
-          const savedSet = new Set(data.savedProducts.map(product => product.id));
-          setSavedProducts(savedSet);
-        } else {
-          console.error("Failed to fetch saved products:", data.message);
-        }
-      } catch (err) {
-        console.error("Error fetching saved products:", err);
+  const fetchSavedProducts = async () => {
+    try {
+      const response = await fetch(
+        `http://localhost:5000/savedproducts/${user.userId}`
+      );
+      const data = await response.json();
+      if (data.success) {
+        const savedSet = new Set(
+          data.savedProducts.map((product) => product.id)
+        );
+        setSavedProducts(savedSet);
+      } else {
+        console.error("Failed to fetch saved products:", data.message);
       }
-    };
+    } catch (err) {
+      console.error("Error fetching saved products:", err);
+    }
+  };
   // Handle search
   useEffect(() => {
     const filtered = products.filter((product) =>
@@ -918,46 +1134,89 @@ const FarmMarketplace = () => {
     try {
       if (savedProducts.has(productId)) {
         // Remove from saved products
-        const response = await fetch(`http://localhost:5000/savedproducts/${user.userId}/${productId}`, {
-          method: 'DELETE',
-        });
+        const response = await fetch(
+          `http://localhost:5000/savedproducts/${user.userId}/${productId}`,
+          {
+            method: "DELETE",
+          }
+        );
         const data = await response.json();
-        
+
         if (data.success) {
-          setSavedProducts(prev => {
+          setSavedProducts((prev) => {
             const newSet = new Set(prev);
             newSet.delete(productId);
             return newSet;
           });
+          toast.success("Product Removed from Saved Products List Successfully", {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+        });
         } else {
           console.error("Failed to remove saved product:", data.message);
+          toast.error("Failed to remove the Product from Saved Products List ", {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+        });
         }
       } else {
         // Add to saved products
-        const response = await fetch('http://localhost:5000/savedproducts', {
-          method: 'POST',
+        const response = await fetch("http://localhost:5000/savedproducts", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             itemID: productId,
-            userID: user.userId
+            userID: user.userId,
           }),
         });
         const data = await response.json();
-        
+
         if (data.success) {
-          setSavedProducts(prev => {
+          setSavedProducts((prev) => {
             const newSet = new Set(prev);
             newSet.add(productId);
             return newSet;
           });
+          toast.success("Product Added to Saved Products List Successfully", {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+        });
         } else {
           console.error("Failed to save product:", data.message);
+          toast.error("Unable to add the product to Saved Products List", {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+        });
         }
       }
     } catch (err) {
       console.error("Error toggling saved product:", err);
+      toast.error("Unable to add product to Saved Products List", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+    });
     }
   };
 
@@ -990,22 +1249,22 @@ const FarmMarketplace = () => {
             </span>
           )}
           <button
-          className="absolute top-2 right-2 p-2 rounded-full bg-white shadow-md hover:bg-gray-50"
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleSaveProduct(product.id);
-          }}
-        >
-          <Heart
-            className={`w-5 h-5 ${
-              isSaved ? "text-red-500 fill-red-500" : "text-gray-400"
-            }`}
-          />
-        </button>
+            className="absolute top-2 right-2 p-2 rounded-full bg-white shadow-md hover:bg-gray-50"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleSaveProduct(product.id);
+            }}
+          >
+            <Heart
+              className={`w-5 h-5 ${
+                isSaved ? "text-red-500 fill-red-500" : "text-gray-400"
+              }`}
+            />
+          </button>
         </div>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-          <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium">
+            <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium">
               {product.category}
             </span>
             <div className="flex items-center">
@@ -1030,9 +1289,6 @@ const FarmMarketplace = () => {
             </span>
           </div>
         </div>
-       
-        
-      
       </div>
     );
   };
@@ -1060,7 +1316,7 @@ const FarmMarketplace = () => {
         <ProductPopup
           product={selectedProduct}
           onClose={() => setSelectedProduct(null)}
-          onProductUpdate={fetchProducts} 
+          onProductUpdate={fetchProducts}
         />
       )}
     </div>

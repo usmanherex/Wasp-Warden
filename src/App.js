@@ -30,7 +30,8 @@ import Dashboard from './pages/FarmerDashboard';
 import PendingOrders from './pages/PendingOrders';
 import AgriDashboard from './pages/AgriBusinessDashboard';
 import ConsumerDashboard from './pages/ConsumerDashboard';
-
+import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer } from 'react-toastify';
 
 const AppContent = () => {
   const location = useLocation();
@@ -44,6 +45,18 @@ const showNavbar = !['/login', '/signup','/forgot-password', '/reset-password'].
 
   return (
     <div>
+       <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
       {showNavbar && <Navbar />}
       
       <Routes>

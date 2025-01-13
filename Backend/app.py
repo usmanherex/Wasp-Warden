@@ -1246,7 +1246,81 @@ def handle_review_reaction(review_id):
         }), 500
 
 
+@app.route('/cart/add', methods=['POST'])
+def add_to_cart():
+    try:
+        data = request.json
+        required_fields = ['userID', 'itemID', 'ownerName', 'quantity', 'price']
+        
+        if not all(field in data for field in required_fields):
+            return jsonify({
+                'success': False,
+                'message': 'Missing required fields'
+            }), 400
+        
+        success, result = db.add_cart_item(data)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'data': result
+            })
+        return jsonify({
+            'success': False,
+            'message': result
+        })
+            
+    except Exception as e:
+        print(f"Error in add_to_cart route: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
 
+@app.route('/cart/delete/<int:cart_id>/<int:item_id>', methods=['DELETE'])
+def delete_from_cart(cart_id, item_id):
+    try:
+        success, result = db.delete_cart_item(cart_id, item_id)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Item removed from cart successfully'
+            })
+        return jsonify({
+            'success': False,
+            'message': result
+        }), 404 if result == "Item not found in cart" else 500
+            
+    except Exception as e:
+        print(f"Error in delete_from_cart route: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+
+@app.route('/cart/items/<int:user_id>', methods=['GET'])
+def get_user_cart_items(user_id):
+    try:
+        success, result = db.get_user_cart_items(user_id)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'data': result
+            })
+        return jsonify({
+            'success': False,
+            'message': result
+        })
+            
+    except Exception as e:
+        print(f"Error in get_user_cart_items route: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
 
 
 
