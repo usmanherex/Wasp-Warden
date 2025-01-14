@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useParams,useNavigate  } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,6 +25,7 @@ import {
   Edit2,
   Trash2,
 } from "lucide-react";
+import NegotiationDialog from "../components/ui/Negotiation-Dialog";
 
 const ReviewStars = ({ rating, size = "small", onClick = null }) => (
   <div className="flex">
@@ -154,7 +155,7 @@ const ReviewsTab = ({
         closeOnClick: true,
         pauseOnHover: true,
         draggable: true,
-    });
+      });
     } finally {
       setLoading(false);
     }
@@ -179,7 +180,6 @@ const ReviewsTab = ({
 
       const data = await response.json();
       if (data.success) {
-      
         toast.success("Review submitted successfully", {
           position: "top-right",
           autoClose: 3000,
@@ -187,11 +187,10 @@ const ReviewsTab = ({
           closeOnClick: true,
           pauseOnHover: true,
           draggable: true,
-      });
+        });
         await fetchReviews();
       }
     } catch (error) {
-     
       toast.error("Failed to submit review", {
         position: "top-right",
         autoClose: 3000,
@@ -199,7 +198,7 @@ const ReviewsTab = ({
         closeOnClick: true,
         pauseOnHover: true,
         draggable: true,
-    });
+      });
     }
   };
 
@@ -222,7 +221,6 @@ const ReviewsTab = ({
 
       const data = await response.json();
       if (data.success) {
-       
         toast.success("Review updated successfully", {
           position: "top-right",
           autoClose: 3000,
@@ -230,11 +228,10 @@ const ReviewsTab = ({
           closeOnClick: true,
           pauseOnHover: true,
           draggable: true,
-      });
+        });
         await fetchReviews();
       }
     } catch (error) {
-      
       toast.error("Failed to update review", {
         position: "top-right",
         autoClose: 3000,
@@ -242,7 +239,7 @@ const ReviewsTab = ({
         closeOnClick: true,
         pauseOnHover: true,
         draggable: true,
-    });
+      });
     }
   };
 
@@ -263,7 +260,6 @@ const ReviewsTab = ({
 
       const data = await response.json();
       if (data.success) {
-        
         toast.success("Review Deleted successfully", {
           position: "top-right",
           autoClose: 3000,
@@ -271,13 +267,12 @@ const ReviewsTab = ({
           closeOnClick: true,
           pauseOnHover: true,
           draggable: true,
-      });
+        });
         await fetchReviews();
         setShowDeleteDialog(false);
         setDeletingReviewId(null);
       }
     } catch (error) {
- 
       toast.error("Failed to delete review", {
         position: "top-right",
         autoClose: 3000,
@@ -285,7 +280,7 @@ const ReviewsTab = ({
         closeOnClick: true,
         pauseOnHover: true,
         draggable: true,
-    });
+      });
     } finally {
       setShowDeleteDialog(false);
       setDeletingReviewId(null);
@@ -349,7 +344,6 @@ const ReviewsTab = ({
           },
         }));
 
-     
         toast.success("Reaction updated successfully", {
           position: "top-right",
           autoClose: 3000,
@@ -357,10 +351,9 @@ const ReviewsTab = ({
           closeOnClick: true,
           pauseOnHover: true,
           draggable: true,
-      });
+        });
       }
     } catch (error) {
-      
       toast.error("Failed to update reaction", {
         position: "top-right",
         autoClose: 3000,
@@ -368,7 +361,7 @@ const ReviewsTab = ({
         closeOnClick: true,
         pauseOnHover: true,
         draggable: true,
-    });
+      });
     }
   };
 
@@ -588,33 +581,34 @@ const ProductPopup = ({ product, onClose, onProductUpdate }) => {
   const reviewFormRef = useRef(null);
   const user = JSON.parse(localStorage.getItem("user"));
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showNegotiationDialog, setShowNegotiationDialog] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
-    const navigate = useNavigate();
-    const handleStartChat = async () => {
-      try {
-        const response = await fetch('http://localhost:5000/start-chat', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            user1Id: user.userId,
-            user2Id: parseInt(product.ownerId)
-          })
-        });
-  
-        if (!response.ok) {
-          throw new Error('Failed to initialize chat');
-        }
-  
-        const data = await response.json();
-        // Navigate to inbox with the chat ID
-        navigate(`/inbox`);
-      } catch (error) {
-        console.error('Error starting chat:', error);
-        // Handle error appropriately
+  const navigate = useNavigate();
+  const handleStartChat = async () => {
+    try {
+      const response = await fetch("http://localhost:5000/start-chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user1Id: user.userId,
+          user2Id: parseInt(product.ownerId),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to initialize chat");
       }
-    };
+
+      const data = await response.json();
+      // Navigate to inbox with the chat ID
+      navigate(`/inbox`);
+    } catch (error) {
+      console.error("Error starting chat:", error);
+      // Handle error appropriately
+    }
+  };
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (popupRef.current && !popupRef.current.contains(event.target)) {
@@ -638,7 +632,7 @@ const ProductPopup = ({ product, onClose, onProductUpdate }) => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [onClose, showReviewForm, showDeleteDialog]);
- 
+
   // Quantity control functions remain the same...
   const incrementQuantity = () => {
     if (quantity < product.quantityAvailable) {
@@ -684,61 +678,62 @@ const ProductPopup = ({ product, onClose, onProductUpdate }) => {
 
     setIsAddingToCart(true);
     try {
-        const cartData = {
-            userID: user.userId,
-            itemID: product.id,
-            ownerName: `${product.ownerDetails.firstName} ${product.ownerDetails.lastName}`,
-            quantity: quantity,
-            price: product.salePercentage > 0
-                ? product.itemPrice * (1 - product.salePercentage / 100)
-                : product.itemPrice,
-        };
+      const cartData = {
+        userID: user.userId,
+        itemID: product.id,
+        ownerName: `${product.ownerDetails.firstName} ${product.ownerDetails.lastName}`,
+        quantity: quantity,
+        price:
+          product.salePercentage > 0
+            ? product.itemPrice * (1 - product.salePercentage / 100)
+            : product.itemPrice,
+      };
 
-        const response = await fetch("http://localhost:5000/cart/add", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(cartData),
+      const response = await fetch("http://localhost:5000/cart/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(cartData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success("Item added to cart successfully", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
         });
-
-        const data = await response.json();
-
-        if (data.success) {
-            toast.success("Item added to cart successfully", {
-                position: "top-right",
-                autoClose: 3000,
-                hideProgressBar: false,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
-            });
-            onClose();
-        } else {
-            // Handle the error message from the database
-            toast.error(data.error || "Failed to add item to cart", {
-                position: "top-right",
-                autoClose: 5000,
-                hideProgressBar: false,
-                closeOnClick: true,
-                pauseOnHover: true,
-                draggable: true,
-            });
-        }
+        onClose();
+      } else {
+        // Handle the error message from the database
+        toast.error(data.error || "Failed to add item to cart", {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+      }
     } catch (error) {
-        // Handle network or other errors
-        toast.error(error.message || "Failed to add item to cart", {
-            position: "top-right",
-            autoClose: 5000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-        });
+      // Handle network or other errors
+      toast.error(error.message || "Failed to add item to cart", {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     } finally {
-        setIsAddingToCart(false);
+      setIsAddingToCart(false);
     }
-};
+  };
   // Price calculations remain the same...
   const originalPrice = product.itemPrice;
   const salePrice =
@@ -919,11 +914,27 @@ const ProductPopup = ({ product, onClose, onProductUpdate }) => {
                         </button>
 
                         <div className="grid grid-cols-2 gap-3">
-                          <button className="flex items-center justify-center gap-2 border-2 border-green-500 text-green-500 hover:bg-green-50 py-3 rounded-xl font-medium transition-colors">
+                          <button
+                            onClick={() => setShowNegotiationDialog(true)}
+                            className="flex items-center justify-center gap-2 border-2 border-green-500 text-green-500 hover:bg-green-50 py-3 rounded-xl font-medium transition-colors"
+                          >
                             <DollarSign className="w-5 h-5" />
                             Negotiate
                           </button>
-                          <button onClick={handleStartChat} className="flex items-center justify-center gap-2 border-2 border-blue-500 text-blue-500 hover:bg-blue-50 py-3 rounded-xl font-medium transition-colors">
+
+                          {/* Add this at the end of your component, before the closing tag */}
+                          {showNegotiationDialog && (
+                            <NegotiationDialog
+                              product={product}
+                              onClose={() => setShowNegotiationDialog(false)}
+                              user={user}
+                              quantity={quantity}
+                            />
+                          )}
+                          <button
+                            onClick={handleStartChat}
+                            className="flex items-center justify-center gap-2 border-2 border-blue-500 text-blue-500 hover:bg-blue-50 py-3 rounded-xl font-medium transition-colors"
+                          >
                             <MessageCircle className="w-5 h-5" />
                             Message Seller
                           </button>
@@ -1148,24 +1159,30 @@ const FarmMarketplace = () => {
             newSet.delete(productId);
             return newSet;
           });
-          toast.success("Product Removed from Saved Products List Successfully", {
-            position: "top-right",
-            autoClose: 3000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-        });
+          toast.success(
+            "Product Removed from Saved Products List Successfully",
+            {
+              position: "top-right",
+              autoClose: 3000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+            }
+          );
         } else {
           console.error("Failed to remove saved product:", data.message);
-          toast.error("Failed to remove the Product from Saved Products List ", {
-            position: "top-right",
-            autoClose: 3000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-        });
+          toast.error(
+            "Failed to remove the Product from Saved Products List ",
+            {
+              position: "top-right",
+              autoClose: 3000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+            }
+          );
         }
       } else {
         // Add to saved products
@@ -1194,7 +1211,7 @@ const FarmMarketplace = () => {
             closeOnClick: true,
             pauseOnHover: true,
             draggable: true,
-        });
+          });
         } else {
           console.error("Failed to save product:", data.message);
           toast.error("Unable to add the product to Saved Products List", {
@@ -1204,7 +1221,7 @@ const FarmMarketplace = () => {
             closeOnClick: true,
             pauseOnHover: true,
             draggable: true,
-        });
+          });
         }
       }
     } catch (err) {
@@ -1216,7 +1233,7 @@ const FarmMarketplace = () => {
         closeOnClick: true,
         pauseOnHover: true,
         draggable: true,
-    });
+      });
     }
   };
 

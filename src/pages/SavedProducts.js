@@ -25,7 +25,7 @@ import {
   Edit2,
   Trash2,
 } from "lucide-react";
-
+import NegotiationDialog from "../components/ui/Negotiation-Dialog";
 const ReviewStars = ({ rating, size = "small", onClick = null }) => (
   <div className="flex">
     {[1, 2, 3, 4, 5].map((star) => (
@@ -621,6 +621,7 @@ const ProductPopup = ({ product, onClose, onProductUpdate }) => {
   const user = JSON.parse(localStorage.getItem("user"));
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [showNegotiationDialog, setShowNegotiationDialog] = useState(false);
     const navigate = useNavigate();
     const handleStartChat = async () => {
       try {
@@ -953,10 +954,23 @@ const ProductPopup = ({ product, onClose, onProductUpdate }) => {
 
 
                         <div className="grid grid-cols-2 gap-3">
-                          <button className="flex items-center justify-center gap-2 border-2 border-green-500 text-green-500 hover:bg-green-50 py-3 rounded-xl font-medium transition-colors">
+                        <button
+                            onClick={() => setShowNegotiationDialog(true)}
+                            className="flex items-center justify-center gap-2 border-2 border-green-500 text-green-500 hover:bg-green-50 py-3 rounded-xl font-medium transition-colors"
+                          >
                             <DollarSign className="w-5 h-5" />
                             Negotiate
                           </button>
+
+                          {/* Add this at the end of your component, before the closing tag */}
+                          {showNegotiationDialog && (
+                            <NegotiationDialog
+                              product={product}
+                              onClose={() => setShowNegotiationDialog(false)}
+                              user={user}
+                              quantity={quantity}
+                            />
+                          )}
                           <button onClick={handleStartChat}  className="flex items-center justify-center gap-2 border-2 border-blue-500 text-blue-500 hover:bg-blue-50 py-3 rounded-xl font-medium transition-colors">
                             <MessageCircle className="w-5 h-5" />
                             Message Seller

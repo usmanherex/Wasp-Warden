@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Truck, Trash2, ShoppingCart } from 'lucide-react';
+import { Truck, Trash2, ShoppingCart, Tag } from 'lucide-react';
 import axios from 'axios';
-import {toast} from "react-toastify";
+import { toast } from "react-toastify";
+
 const CartPage = () => {
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,24 +37,24 @@ const CartPage = () => {
       const response = await axios.delete(`http://localhost:5000/cart/delete/${cartId}/${itemId}`);
       if (response.data.success) {
         fetchCartItems();
-         toast.success("Item Removed Successfully", {
-                    position: "top-right",
-                    autoClose: 3000,
-                    hideProgressBar: false,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    draggable: true,
-                });
+        toast.success("Item Removed Successfully", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
       } else {
         setError(response.data.message);
-         toast.error("Failed to remove item", {
-                    position: "top-right",
-                    autoClose: 3000,
-                    hideProgressBar: false,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    draggable: true,
-                });
+        toast.error("Failed to remove item", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
       }
     } catch (err) {
       setError(err.message || 'Failed to remove item');
@@ -64,7 +65,7 @@ const CartPage = () => {
         closeOnClick: true,
         pauseOnHover: true,
         draggable: true,
-    });
+      });
     }
   };
 
@@ -133,12 +134,27 @@ const CartPage = () => {
                     <h2 className="text-xl font-semibold text-gray-800 mb-1">{item.itemName}</h2>
                     <p className="text-sm text-gray-600 mb-1">Seller: {item.ownerName}</p>
                     <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
+                    {item.hasNegotiatedPrice && (
+                      <div className="flex items-center mt-1 text-green-600">
+                        <Tag className="h-4 w-4 mr-1" />
+                        <span className="text-sm">Negotiated price applied</span>
+                      </div>
+                    )}
                   </div>
                   <div className="text-right">
                     <p className="font-semibold text-lg text-gray-800">
                       ${(item.price * item.quantity).toFixed(2)}
                     </p>
-                    <p className="text-sm text-gray-600">${item.price.toFixed(2)} / per item</p>
+                    <div className="flex flex-col">
+                      <p className="text-sm text-gray-600">
+                        ${item.price.toFixed(2)} / per item
+                      </p>
+                      {item.hasNegotiatedPrice && item.originalPrice && (
+                        <p className="text-sm text-gray-400 line-through">
+                          Was: ${item.originalPrice.toFixed(2)}
+                        </p>
+                      )}
+                    </div>
                   </div>
                   <button 
                     onClick={() => removeItem(item.cartId, item.itemId)} 

@@ -1322,7 +1322,127 @@ def get_user_cart_items(user_id):
             'message': str(e)
         }), 500
 
+@app.route('/negotiations/create', methods=['POST'])
+def create_negotiation():
+    try:
+        data = request.json
+        required_fields = ['consumerId', 'farmerId', 'productId', 'newPrice', 'originalPrice', 'notes','quantity']
+        
+        if not all(field in data for field in required_fields):
+            return jsonify({
+                'success': False,
+                'message': 'Missing required fields'
+            }), 400
+        
+        notes = data.get('notes') if data.get('notes') else ""
+      
+        success, result = db.create_negotiation_request(
+            data['consumerId'],
+            data['farmerId'],
+            data['productId'],
+            data['newPrice'],
+            data['originalPrice'],
+            data['quantity'],
+            notes 
+        )
 
+        if success:
+            return jsonify({
+                'success': True,
+                'data': result
+            })
+        
+        return jsonify({
+            'success': False,
+            'message': result
+        }), 400
+
+    except Exception as e:
+        print(f"Error in create_negotiation route: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/negotiations/farmer/<int:farmer_id>', methods=['GET'])
+def get_farmer_negotiations(farmer_id):
+    try:
+        success, result = db.get_farmer_negotiations(farmer_id)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'data': result
+            })
+            
+        return jsonify({
+            'success': False,
+            'message': result
+        }), 400
+
+    except Exception as e:
+        print(f"Error in get_farmer_negotiations route: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+    
+@app.route('/negotiations/consumer/<int:consumer_id>', methods=['GET'])
+def get_consumer_negotiations(consumer_id):
+    try:
+        success, result = db.get_consumer_negotiations(consumer_id)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'data': result
+            })
+            
+        return jsonify({
+            'success': False,
+            'message': result
+        }), 400
+
+    except Exception as e:
+        print(f"Error in get_consumer_negotiations route: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+    
+@app.route('/negotiations/update/<string:negotiation_id>', methods=['PUT'])
+def update_negotiation_status(negotiation_id):
+    try:
+        data = request.json
+        if 'status' not in data:
+            return jsonify({
+                'success': False,
+                'message': 'Status is required'
+            }), 400
+
+        success, result = db.update_negotiation_request(
+            negotiation_id,
+            data['status']
+           
+        )
+
+        if success:
+            return jsonify({
+                'success': True,
+                'data': result
+            })
+            
+        return jsonify({
+            'success': False,
+            'message': result
+        }), 400
+
+    except Exception as e:
+        print(f"Error in update_negotiation_status route: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
 
 
 if __name__ == '__main__':

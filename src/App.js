@@ -32,6 +32,7 @@ import AgriDashboard from './pages/AgriBusinessDashboard';
 import ConsumerDashboard from './pages/ConsumerDashboard';
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
+import ConsumerNegotiationsPage from './pages/ConsumerNegotiations';
 
 const AppContent = () => {
   const location = useLocation();
@@ -55,7 +56,8 @@ const showNavbar = !['/login', '/signup','/forgot-password', '/reset-password'].
         pauseOnFocusLoss
         draggable
         pauseOnHover
-        theme="light"
+        theme="dark"
+       
       />
       {showNavbar && <Navbar />}
       
@@ -93,6 +95,7 @@ const showNavbar = !['/login', '/signup','/forgot-password', '/reset-password'].
         <Route path="/agribusiness-dashboard" element={<AgriDashboard />} />
         <Route path="/pending-orders" element={<PendingOrders />} />
         <Route path="/consumer-dashboard" element={<ConsumerDashboard />} />
+        <Route path="/consumer-negotiations" element={<ConsumerNegotiationsPage />} />
       </Routes>
 
       {showFooter && <Footer />}

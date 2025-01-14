@@ -2117,18 +2117,29 @@ class WardernDatabase:
         with pyodbc.connect(self.conn_str) as conn:
             cursor = conn.cursor()
             
-            # First, check if user has an active cart
+            # Check if user has an active cart
             cart_query = """
-                SELECT cartID FROM carts 
+                SELECT cartID, cart_status 
+                FROM carts 
                 WHERE userID = ?
                 ORDER BY created_at DESC
             """
             cursor.execute(cart_query, (data['userID'],))
             cart_row = cursor.fetchone()
             
+            # Determine if we need to create a new cart
+            create_new_cart = False
             if not cart_row:
-                # Create new cart if none exists
-                cart_insert = "INSERT INTO carts (userID) VALUES (?)"
+                create_new_cart = True
+            elif cart_row.cart_status == 'completed':
+                create_new_cart = True
+                
+            if create_new_cart:
+                # Create new cart
+                cart_insert = """
+                    INSERT INTO carts (userID, cart_status) 
+                    VALUES (?, 'pending')
+                """
                 cursor.execute(cart_insert, (data['userID'],))
                 cursor.execute("SELECT @@IDENTITY")
                 cart_id = cursor.fetchone()[0]
@@ -2234,7 +2245,28 @@ class WardernDatabase:
         with pyodbc.connect(self.conn_str) as conn:
             cursor = conn.cursor()
             
+            # Modified query to get latest accepted negotiation per cart item
             query = """
+                WITH LatestPendingCart AS (
+                    SELECT TOP 1 cartID 
+                    FROM carts 
+                    WHERE userID = ? 
+                    AND cart_status = 'pending'
+                    ORDER BY created_at DESC
+                ),
+                LatestAcceptedNegotiation AS (
+                    SELECT 
+                        pn.cartID,
+                        pn.productID,
+                        pn.quantity,
+                        pn.newPrice,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY pn.cartID, pn.productID, pn.quantity 
+                            ORDER BY pn.timestamp DESC
+                        ) as rn
+                    FROM price_negotiations pn
+                    WHERE pn.negotiation_status = 'Accepted'
+                )
                 SELECT 
                     ci.cartID,
                     ci.itemID,
@@ -2244,11 +2276,17 @@ class WardernDatabase:
                     c.created_at,
                     c.updated_at,
                     i.itemName,
-                    i.itemImage
+                    i.itemImage,
+                    lan.newPrice as negotiated_price
                 FROM cart_items ci
                 INNER JOIN carts c ON ci.cartID = c.cartID
                 INNER JOIN Items i ON ci.itemID = i.itemID
-                WHERE c.userID = ?
+                INNER JOIN LatestPendingCart lpc ON ci.cartID = lpc.cartID
+                LEFT JOIN LatestAcceptedNegotiation lan ON 
+                    lan.cartID = ci.cartID 
+                    AND lan.productID = ci.itemID 
+                    AND lan.quantity = ci.quantity
+                    AND lan.rn = 1
                 ORDER BY c.created_at DESC
             """
             
@@ -2263,15 +2301,268 @@ class WardernDatabase:
                 'itemId': row[1],
                 'ownerName': row[2],
                 'quantity': row[3],
-                'price': float(row[4]),
+                'price': float(row[9]) if row[9] is not None else float(row[4]),  # Use negotiated price if available
+                'originalPrice': float(row[4]) if row[9] is not None else None,  # Include original price if negotiated
                 'createdAt': row[5].isoformat() if row[5] else None,
                 'updatedAt': row[6].isoformat() if row[6] else None,
                 'itemName': row[7],
-                'itemImage': base64.b64encode(row[8]).decode('utf-8') if row[8] else None
+                'itemImage': base64.b64encode(row[8]).decode('utf-8') if row[8] else None,
+                'hasNegotiatedPrice': row[9] is not None  # Flag to indicate if price was negotiated
             } for row in rows]
             
             return True, cart_items
             
      except Exception as e:
         print(f"Error in get_user_cart_items: {str(e)}")
+        return False, str(e)
+     
+    def create_negotiation_request(self, consumer_id, farmer_id, product_id, new_price, original_price, quantity, notes):
+     try:
+        with pyodbc.connect(self.conn_str) as conn:
+            cursor = conn.cursor()
+            
+            # First, check if there's a pending cart for this user
+            cart_query = """
+                SELECT TOP 1 cartID 
+                FROM carts 
+                WHERE userID = ? AND cart_status = 'pending'
+                ORDER BY created_at DESC
+            """
+            cursor.execute(cart_query, (consumer_id,))
+            cart_row = cursor.fetchone()
+            
+            cart_id = None
+            if cart_row:
+                cart_id = cart_row[0]
+                
+                # Check if negotiation already exists for this cart and product
+                check_existing = """
+                    SELECT negotiationID, negotiation_status
+                    FROM price_negotiations
+                    WHERE cartID = ? AND productID = ? AND negotiation_status = 'Pending'
+                """
+              
+                cursor.execute(check_existing, (cart_id, product_id))
+                existing_neg = cursor.fetchone()
+                
+                if existing_neg:
+                    status = existing_neg[1]
+                    message = {
+                        'Pending': 'A negotiation request is already pending for this item',
+                        'Accepted': 'A previous negotiation for this item was accepted',
+                        'Rejected': 'A previous negotiation for this item was rejected'
+                    }.get(status, 'A negotiation already exists for this item')
+                    return False, message
+            else:
+                # Create a new cart if none exists
+                cart_insert = """
+                    INSERT INTO carts (userID, cart_status)
+                    VALUES (?, 'pending');
+                """
+                cursor.execute(cart_insert, (consumer_id,))
+                cursor.commit()
+                
+                # Get the new cart ID
+                cursor.execute("SELECT SCOPE_IDENTITY()")
+                cart_id = cursor.fetchval()
+           
+            # Validate inputs
+            if new_price <= 0:
+                return False, "New price must be greater than 0"
+            if new_price >= original_price:
+                return False, "New price must be less than original price"
+            if quantity <= 0:
+                return False, "Quantity must be greater than 0"
+        
+            # Insert the negotiation request
+            # Note: negotiationID will be generated by the trigger
+            insert_query = """
+                INSERT INTO price_negotiations (
+                    consumerID, farmerID, productID, newPrice, 
+                     negotiation_status, notes, cartID, originalPrice, quantity
+                    )
+                     VALUES (?, ?, ?, ?, 'Pending', ?, ?, ?, ?)
+                            """
+       
+            cursor.execute(insert_query, (
+                consumer_id, farmer_id, product_id, new_price,notes,
+                cart_id, original_price, quantity
+            ))
+            
+            cursor.commit()
+            
+            # Fetch the inserted negotiation in a separate query
+            select_query = """
+                SELECT TOP 1 *
+                FROM price_negotiations
+                WHERE consumerID = ? 
+                AND farmerID = ? 
+                AND productID = ?
+                ORDER BY timestamp DESC
+            """
+            
+            cursor.execute(select_query, (consumer_id, farmer_id, product_id))
+            row = cursor.fetchone()
+            
+            if not row:
+                return False, "Failed to create negotiation request"
+            
+            
+            negotiation = {
+                'negotiationId': row[0],
+                'consumerId': row[1],
+                'farmerId': row[2],
+                'productId': row[3],
+                'newPrice': float(row[4]),
+                'status': row[5],
+                'notes': row[6],
+                'timestamp': row[7].isoformat() if row[7] else None,
+                'cartId': row[8],
+                'originalPrice': float(row[9]),
+                'quantity': int(row[10])
+            }
+            
+            return True, negotiation
+            
+     except Exception as e:
+        print(f"Error in create_negotiation_request: {str(e)}")
+        return False, f"An error occurred: {str(e)}"
+
+    def get_farmer_negotiations(self, farmer_id):
+     try:
+        with pyodbc.connect(self.conn_str) as conn:
+            cursor = conn.cursor()
+            
+            query = """
+                SELECT 
+                    n.*,
+                    CONCAT(u.FirstName, ' ', u.LastName) as consumer_full_name,
+                    i.itemName,
+                    i.itemImage
+                FROM price_negotiations n
+                INNER JOIN Users u ON n.consumerID = u.userID
+                INNER JOIN Items i ON n.productID = i.itemID
+                WHERE n.farmerID = ?
+                ORDER BY n.timestamp DESC
+            """
+            
+            cursor.execute(query, (farmer_id,))
+            rows = cursor.fetchall()
+            
+            if not rows:
+                return False, "No negotiations found for farmer"
+            
+            negotiations = [{
+                'negotiationId': row[0],
+                'consumerId': row[1],
+                'farmerId': row[2],
+                'productId': row[3],
+                'newPrice': float(row[4]),
+                'status': row[5],
+                'notes': row[6],
+                'timestamp': row[7].isoformat() if row[7] else None,
+                'cartId': row[8],
+                'originalPrice': float(row[9]),
+                'quantity': row[10],
+                'consumerName': row[11],  # Now contains FirstName + LastName
+                'itemName': row[12],
+                'itemImage': base64.b64encode(row[13]).decode('utf-8') if row[13] else None,
+            } for row in rows]
+            
+            return True, negotiations
+            
+     except Exception as e:
+        print(f"Error in get_farmer_negotiations: {str(e)}")
+        return False, str(e)
+
+    def get_consumer_negotiations(self, consumer_id):
+     try:
+        with pyodbc.connect(self.conn_str) as conn:
+            cursor = conn.cursor()
+            
+            query = """
+                SELECT 
+                    n.*,
+                    CONCAT(f.FirstName, ' ', f.LastName) as farmer_full_name,
+                    i.itemName,
+                    i.itemImage
+                FROM price_negotiations n
+                INNER JOIN Users f ON n.farmerID = f.userID
+                INNER JOIN Items i ON n.productID = i.itemID
+                WHERE n.consumerID = ?
+                ORDER BY n.timestamp DESC
+            """
+            
+            cursor.execute(query, (consumer_id,))
+            rows = cursor.fetchall()
+            
+            if not rows:
+                return False, "No negotiations found for Consumer"
+           
+            negotiations = [{
+                'negotiationId': row[0],
+                'consumerId': row[1],
+                'farmerId': row[2],
+                'productId': row[3],
+                'newPrice': float(row[4]),
+                'status': row[5],
+                'notes': row[6],
+                'timestamp': row[7].isoformat() if row[7] else None,
+                'cartId': row[8],
+                'originalPrice': float(row[9]),
+                'quantity': row[10],
+                'farmerName': row[11],  # Now contains FirstName + LastName of farmer
+                'itemName': row[12],
+                'itemImage': base64.b64encode(row[13]).decode('utf-8') if row[13] else None,
+            } for row in rows]
+           
+            return True, negotiations
+            
+     except Exception as e:
+        print(f"Error in get_consumer_negotiations: {str(e)}")
+        return False, str(e)
+     
+    def update_negotiation_request(self, negotiation_id, status):
+     try:
+        with pyodbc.connect(self.conn_str) as conn:
+            cursor = conn.cursor()
+            
+            if status not in ['Pending', 'Accepted', 'Rejected']:
+                return False, "Invalid status value"
+            
+            # First execute the UPDATE
+            update_query = """
+                UPDATE price_negotiations
+                SET negotiation_status = ?
+                WHERE negotiationID = ?
+            """
+            cursor.execute(update_query, (status, negotiation_id))
+            cursor.commit()
+            
+            # Then execute the SELECT
+            select_query = "SELECT * FROM price_negotiations WHERE negotiationID = ?"
+            cursor.execute(select_query, (negotiation_id,))
+            row = cursor.fetchone()
+            
+            if not row:
+                return False, "Negotiation not found"
+            
+            negotiation = {
+                'negotiationId': row[0],
+                'consumerId': row[1],
+                'farmerId': row[2],
+                'productId': row[3],
+                'newPrice': float(row[4]),
+                'status': row[5],
+                'notes': row[6],
+                'timestamp': row[7].isoformat() if row[7] else None,
+                'cartId': row[8],
+                'originalPrice': float(row[9]),
+                'quantity': row[10]
+            }
+            
+            return True, negotiation
+            
+     except Exception as e:
+        print(f"Error in update_negotiation_request: {str(e)}")
         return False, str(e)

@@ -196,12 +196,14 @@ CREATE TABLE product_reviews (
 
 );
 
--- Table to store cart headers/metadata
+
+  -- Table to store cart headers/metadata
 CREATE TABLE carts (
     cartID INT IDENTITY(1,1) PRIMARY KEY,
     userID INT NOT NULL,
     created_at DATETIME DEFAULT GETDATE(),
-    updated_at DATETIME DEFAULT GETDATE()
+    updated_at DATETIME DEFAULT GETDATE(),
+	cart_status VARCHAR(20) NOT NULL
 );
 
 -- Table to store cart items
@@ -213,3 +215,60 @@ CREATE TABLE cart_items (
     price DECIMAL(10,2),
  
 );
+
+CREATE TABLE price_negotiations (
+    negotiationID VARCHAR(20) PRIMARY KEY,
+    consumerID INT NOT NULL,
+    farmerID INT NOT NULL,
+    productID INT NOT NULL,
+    newPrice FLOAT NOT NULL,
+    negotiation_status VARCHAR(20) NOT NULL DEFAULT 'Pending',
+    notes VARCHAR(500),
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    cartID INT,
+    originalPrice FLOAT NOT NULL,
+    quantity INT NOT NULL,  -- Added quantity field
+    CONSTRAINT status_check CHECK (negotiation_status IN ('Pending', 'Accepted', 'Rejected')),
+    CONSTRAINT price_check CHECK (newPrice > 0),
+    CONSTRAINT quantity_check CHECK (quantity > 0)  -- Added quantity check
+);
+
+CREATE SEQUENCE negotiation_counter_seq
+    START WITH 1
+    INCREMENT BY 1;
+
+CREATE TRIGGER trg_GenerateNegotiationID
+ON price_negotiations
+INSTEAD OF INSERT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    INSERT INTO price_negotiations (
+        negotiationID,
+        consumerID,
+        farmerID,
+        productID,
+        newPrice,
+        negotiation_status,
+        notes,
+        timestamp,
+        cartID,
+        originalPrice,
+        quantity
+    )
+    SELECT 
+        'NEG-' + CAST(YEAR(i.timestamp) AS VARCHAR(4)) + '-' + 
+        RIGHT('000' + CAST(NEXT VALUE FOR negotiation_counter_seq AS VARCHAR(3)), 3),
+        i.consumerID,
+        i.farmerID,
+        i.productID,
+        i.newPrice,
+        i.negotiation_status,
+        i.notes,
+        i.timestamp,
+        i.cartID,
+        i.originalPrice,
+        i.quantity
+    FROM inserted i;
+END;

@@ -96,7 +96,7 @@ const ConsumerDashboard = () => {
         </Link>
 
        {/* Pending Negotiations */}
-       <Link to="/pending-negotiations">
+       <Link to="/consumer-negotiations">
           <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer bg-white border-green-500 border-l-4">
             <div className="flex items-center space-x-4">
               <div className="p-3 bg-green-100 rounded-full">
