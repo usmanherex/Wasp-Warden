@@ -137,7 +137,7 @@ const Dashboard = () => {
         </Link>
 
         {/* Order History */}
-        <Link to="/order-history">
+         <Link to={`/order-history/${user.userId}`}>
           <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer bg-white border-green-500 border-l-4">
             <div className="flex items-center space-x-4">
               <div className="p-3 bg-green-100 rounded-full">
@@ -181,7 +181,19 @@ const Dashboard = () => {
           </Card>
         </Link>
        
-
+        <Link to="/finances">
+          <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer bg-white border-green-500 border-l-4">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-green-100 rounded-full">
+                <DollarSign className="h-6 w-6 text-green-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg text-gray-900">My Finances</h3>
+                <p className="text-sm text-gray-500">Manage Finances</p>
+              </div>
+            </div>
+          </Card>
+        </Link>
   
        
       </div>

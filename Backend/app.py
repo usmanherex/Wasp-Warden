@@ -17,7 +17,7 @@ from WardenDatabase import WardernDatabase
 import jwt
 from datetime import datetime, timedelta
 from functools import wraps
-
+import stripe
 reset_tokens = {}
 
 app = Flask(__name__)
@@ -1444,6 +1444,216 @@ def update_negotiation_status(negotiation_id):
             'message': str(e)
         }), 500
 
+stripe.api_key = 'sk_test_51OD2bKKNmXucvr4ctf7q3dzdbQOqAhhMb6tHiRQ1QFsBKS5udzPtsXL7tX3Fi8Vrk3iaZ72QPvEOfmauuTAwMDEr00rT69ET7Z'
 
+'''@app.route('/api/create-payment', methods=['POST'])
+def create_payment():
+    try:
+        # Get the payment data from the request
+        data = request.get_json()
+        payment_method_id = data.get('payment_method_id')
+        amount = data.get('amount')
+
+        # Create a payment intent
+        payment_intent = stripe.PaymentIntent.create(
+            amount=amount,  # amount in cents
+            currency='usd',
+            payment_method=payment_method_id,
+            confirm=True,  # Confirm the payment immediately
+            automatic_payment_methods={
+                'enabled': True,
+                'allow_redirects': 'never'
+            }
+        )
+
+        return jsonify({
+            'success': True,
+            'clientSecret': payment_intent.client_secret
+        })
+
+    except stripe.error.CardError as e:
+        # Handle card errors (e.g., declined card)
+        return jsonify({
+            'error': {
+                'message': e.error.message,
+                'code': e.error.code
+            }
+        }), 400
+
+    except stripe.error.StripeError as e:
+        # Handle other Stripe errors
+        return jsonify({
+            'error': {
+                'message': str(e),
+                'code': 'stripe_error'
+            }
+        }), 500
+
+    except Exception as e:
+        # Handle any other unexpected errors
+        return jsonify({
+            'error': {
+                'message': str(e),
+                'code': 'server_error'
+            }
+        }), 500
+
+# CORS settings if needed
+
+    return response
+'''
+# Route definition
+@app.route('/api/process-payment', methods=['POST'])
+def process_payment():
+    try:
+        data = request.json
+        if not data:
+            return jsonify({
+                'success': False,
+                'message': 'No data provided'
+            }), 400
+
+        user_id = data['orderDetails']['userId']
+        items = data['orderDetails']['items']
+        
+        payment_details = data['customerDetails']
+        
+        success, result = db.process_order_and_payment(user_id, items, payment_details)
+
+        if success:
+            return jsonify({
+                'success': True,
+                'data': result
+            })
+        
+        return jsonify({
+            'success': False,
+            'message': result
+        }), 400
+
+    except Exception as e:
+        print(f"Error in process_payment route: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/api/orders/<int:user_id>', methods=['GET'])
+def get_user_orders(user_id):
+    try:
+        success, result = db.get_user_orders(user_id)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'data': result
+            })
+        return jsonify({
+            'success': False,
+            'message': result
+        })
+            
+    except Exception as e:
+        print(f"Error in get_user_orders route: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+    
+@app.route('/api/ownerOrders/<int:owner_id>', methods=['GET'])
+def get_owner_orders(owner_id):
+    try:
+        success, result = db.get_owner_orders(owner_id)   
+        if success:
+            return jsonify({
+                'success': True,
+                'data': result
+            })
+        return jsonify({
+            'success': False,
+            'message': result
+        })
+            
+    except Exception as e:
+        print(f"Error in get_owner_orders route: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+    
+@app.route('/api/orders/<string:order_id>/status', methods=['PUT'])
+def update_order_status(order_id):
+    try:
+        data = request.json
+        new_status = data.get('status')
+        owner_id = data['userId'] 
+        if not new_status:
+            return jsonify({
+                'success': False,
+                'message': 'New status is required'
+            }), 400
+            
+        success, result = db.update_order_status(order_id, new_status, owner_id)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': result
+            })
+        return jsonify({
+            'success': False,
+            'message': result
+        }), 400
+            
+    except Exception as e:
+        print(f"Error in update_order_status route: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/api/ownerFinances/<int:owner_id>', methods=['GET'])
+def get_owner_finances(owner_id):
+    try:
+        # Get query parameters for filtering
+        start_date = request.args.get('startDate')
+        end_date = request.args.get('endDate')
+        min_amount = request.args.get('minAmount')
+        max_amount = request.args.get('maxAmount')
+        
+        success, result = db.get_owner_finances(owner_id)
+        
+        if success:
+            # Apply filters if provided
+            filtered_data = result['transactions']
+            
+            if start_date:
+                filtered_data = [t for t in filtered_data if t['timestamp'] >= start_date]
+            if end_date:
+                filtered_data = [t for t in filtered_data if t['timestamp'] <= end_date]
+            if min_amount:
+                filtered_data = [t for t in filtered_data if t['amount'] >= float(min_amount)]
+            if max_amount:
+                filtered_data = [t for t in filtered_data if t['amount'] <= float(max_amount)]
+                
+            return jsonify({
+                'success': True,
+                'data': {
+                    'transactions': filtered_data,
+                    'monthlySummary': result['monthlySummary']
+                }
+            })
+            
+        return jsonify({
+            'success': False,
+            'message': result
+        })
+        
+    except Exception as e:
+        print(f"Error in get_owner_finances route: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
 if __name__ == '__main__':
     socketio.run(app, debug=True)

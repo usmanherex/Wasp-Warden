@@ -272,3 +272,113 @@ BEGIN
         i.quantity
     FROM inserted i;
 END;
+
+-- Create sequences for order and finance counters
+CREATE SEQUENCE dbo.order_counter_seq
+    START WITH 1
+    INCREMENT BY 1;
+GO
+
+CREATE SEQUENCE dbo.finance_counter_seq
+    START WITH 1
+    INCREMENT BY 1;
+GO
+
+-- Create Orders table without default constraint
+CREATE TABLE dbo.Orders (
+    orderID VARCHAR(50) PRIMARY KEY,
+    cartID INT NOT NULL,
+    totalPrice DECIMAL(10,2) NOT NULL,
+    ownerID INT NOT NULL,
+    clientID INT NOT NULL,
+    orderDate DATETIME NOT NULL DEFAULT GETDATE(),
+    status VARCHAR(20) NOT NULL,
+    orderStatus VARCHAR(20) NOT NULL,
+    orderDeliverDate DATETIME,
+    fullName VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    phoneNum VARCHAR(20) NOT NULL,
+    shippingAddress TEXT NOT NULL
+);
+GO
+
+-- Create Finances table without default constraint
+CREATE TABLE dbo.Finances (
+    financeID VARCHAR(50) PRIMARY KEY,
+    orderID VARCHAR(50) NOT NULL,
+    [timestamp] DATETIME NOT NULL DEFAULT GETDATE(),
+    paidByUserID INT NOT NULL,
+    paidToUserID INT NOT NULL,
+    totalAmount DECIMAL(10,2) NOT NULL,
+
+);
+GO
+
+-- Create trigger for Orders table
+CREATE TRIGGER trg_GenerateOrderID
+ON dbo.Orders
+INSTEAD OF INSERT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    INSERT INTO dbo.Orders (
+        orderID,
+        cartID,
+        totalPrice,
+        ownerID,
+        clientID,
+        orderDate,
+        status,
+        orderStatus,
+        orderDeliverDate,
+        fullName,
+        email,
+        phoneNum,
+        shippingAddress
+    )
+    SELECT 
+        'ORD-' + RIGHT('000' + CAST(NEXT VALUE FOR dbo.order_counter_seq AS VARCHAR(3)), 3),
+        i.cartID,
+        i.totalPrice,
+        i.ownerID,
+        i.clientID,
+        COALESCE(i.orderDate, GETDATE()),
+        i.status,
+        i.orderStatus,
+        i.orderDeliverDate,
+        i.fullName,
+        i.email,
+        i.phoneNum,
+        i.shippingAddress
+    FROM inserted i;
+END;
+GO
+
+-- Create trigger for Finances table
+CREATE TRIGGER trg_GenerateFinanceID
+ON dbo.Finances
+INSTEAD OF INSERT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    INSERT INTO dbo.Finances (
+        financeID,
+        orderID,
+        [timestamp],
+        paidByUserID,
+        paidToUserID,
+        totalAmount
+    )
+    SELECT 
+        'FN-' + RIGHT('000' + CAST(NEXT VALUE FOR dbo.finance_counter_seq AS VARCHAR(3)), 3),
+        i.orderID,
+        COALESCE(i.[timestamp], GETDATE()),
+        i.paidByUserID,
+        i.paidToUserID,
+        i.totalAmount
+    FROM inserted i;
+END;
+GO
+

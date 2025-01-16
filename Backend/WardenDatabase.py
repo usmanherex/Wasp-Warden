@@ -2523,6 +2523,7 @@ class WardernDatabase:
         return False, str(e)
      
     def update_negotiation_request(self, negotiation_id, status):
+
      try:
         with pyodbc.connect(self.conn_str) as conn:
             cursor = conn.cursor()
@@ -2565,4 +2566,578 @@ class WardernDatabase:
             
      except Exception as e:
         print(f"Error in update_negotiation_request: {str(e)}")
+        return False, str(e)
+    
+    # Database function
+    def process_order_and_payment(self, user_id, items, payment_details):
+     print("Starting order processing...")
+     print(f"User ID: {user_id}")
+     print(f"Items: {items}")
+     print(f"Payment details: {payment_details}")
+     try:
+        with pyodbc.connect(self.conn_str) as conn:
+            cursor = conn.cursor()
+            
+            # Group items by owner
+            items_by_owner = {}
+            for item in items:
+                owner_id = self.get_owner_id(cursor, item['itemId'])
+                if owner_id not in items_by_owner:
+                    items_by_owner[owner_id] = []
+                items_by_owner[owner_id].append(item)
+            
+            created_orders = []
+            
+            for owner_id, owner_items in items_by_owner.items():
+                # Calculate totals
+                subtotal = sum(item['price'] * item['quantity'] for item in owner_items)
+                print(subtotal)
+                tax = subtotal * 0.05
+                total = subtotal + tax
+                
+                # Insert order
+                order_query = """
+                    INSERT INTO orders (
+                        cartID, totalPrice, ownerID, clientID,
+                        status, orderStatus, fullName, email, phoneNum, shippingAddress
+                    ) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """
+                cursor.execute(order_query, (
+                    self.get_active_cart_id(cursor, user_id),
+                    total,
+                    owner_id,
+                    user_id,
+                    'PAID',
+                    'PENDING',
+                    payment_details['name'],
+                    payment_details['email'],
+                    payment_details['phone'],
+                    payment_details['address']
+                ))
+                cursor.commit()
+                
+                
+                cursor.execute("SELECT orderID FROM orders WHERE cartID = ? ", 
+               (self.get_active_cart_id(cursor, user_id),))
+                order_id = cursor.fetchone()[0]
+                print(order_id)
+                # Insert finance record
+                finance_query = """
+                    INSERT INTO finances (
+                        orderID, paidByUserID, paidToUserID, totalAmount
+                    )
+                    VALUES (?, ?, ?, ?)
+                    
+                """
+                cursor.execute(finance_query, (
+                    order_id,
+                    user_id,
+                    owner_id,
+                    total
+                ))
+                cursor.commit()
+                
+                
+                cursor.execute("SELECT financeID FROM finances WHERE orderID = ? ", 
+                (order_id,))
+                
+                
+                finance_id = cursor.fetchone()[0]
+                print(finance_id)
+                created_orders.append({
+                    'orderId': order_id,
+                    'financeId': finance_id,
+                    'total': total
+                })
+            
+            # Update current cart status to completed
+            update_cart_query = """
+                UPDATE carts
+                SET cart_status = 'COMPLETED'
+                WHERE cartID = ? AND userID = ?
+            """
+            cursor.execute(update_cart_query, (
+                self.get_active_cart_id(cursor, user_id),
+                user_id
+            ))
+            
+            # Create new cart for user
+            new_cart_query = """
+                INSERT INTO carts (userID, cart_status)
+                VALUES (?, 'PENDING')
+            """
+            cursor.execute(new_cart_query, (user_id,))
+            
+            conn.commit()
+            
+            return True, {
+                'orders': created_orders,
+                'message': 'Orders processed successfully'
+            }
+            
+     except Exception as e:
+         print(f"Error in process_order_and_payment: {str(e)}")
+         conn.rollback()  # Rollback on error
+         return False, str(e)
+# Helper functions
+    def get_owner_id(self, cursor, item_id):
+     query = "SELECT ownerID FROM items WHERE itemID = ?"
+     cursor.execute(query, (item_id,))
+     result = cursor.fetchone()
+     return result[0] if result else None
+
+    def get_active_cart_id(self, cursor, user_id):
+     query = """
+        SELECT cartID FROM carts 
+        WHERE userID = ? AND cart_status = 'PENDING'
+        ORDER BY created_at DESC
+     """
+     cursor.execute(query, (user_id,))
+     result = cursor.fetchone()
+     return result[0] if result else None
+ 
+     def get_user_orders(self, user_id):
+        try:
+            with pyodbc.connect(self.conn_str) as conn:
+                cursor = conn.cursor()
+                
+                query = """
+                    WITH LatestAcceptedNegotiation AS (
+                        SELECT 
+                            cartID,
+                            productID,
+                            quantity,
+                            newPrice,
+                            ROW_NUMBER() OVER (
+                                PARTITION BY cartID, productID, quantity
+                                ORDER BY timestamp DESC
+                            ) as rn
+                        FROM price_negotiations
+                        WHERE negotiation_status = 'Accepted'
+                    )
+                    SELECT 
+                        o.orderID,
+                        o.cartID,
+                        o.totalPrice,
+                        o.ownerID,
+                        o.clientID,
+                        o.orderDate,
+                        o.status,
+                        o.orderStatus,
+                        o.orderDeliverDate,
+                        o.fullName,
+                        o.email,
+                        o.phoneNum,
+                        o.shippingAddress,
+                        ci.itemID,
+                        ci.ownerName,
+                        ci.quantity,
+                        ci.price as originalPrice,
+                        i.itemName,
+                        i.itemImage,
+                        lan.newPrice as negotiatedPrice
+                    FROM Orders o
+                    INNER JOIN cart_items ci ON o.cartID = ci.cartID
+                    INNER JOIN Items i ON ci.itemID = i.itemID
+                    LEFT JOIN LatestAcceptedNegotiation lan ON 
+                        lan.cartID = o.cartID 
+                        AND lan.productID = ci.itemID
+                        AND lan.quantity = ci.quantity
+                        AND lan.rn = 1
+                    WHERE o.clientID = ?
+                    ORDER BY o.orderDate DESC
+                """
+                
+                cursor.execute(query, (user_id,))
+                rows = cursor.fetchall()
+                
+                if not rows:
+                    return False, "No orders found"
+                
+                # Group items by order
+                orders = {}
+                for row in rows:
+                    order_id = row[0]
+                    if order_id not in orders:
+                        orders[order_id] = {
+                            'orderID': order_id,
+                            'cartID': row[1],
+                            'totalPrice': float(row[2]),
+                            'ownerID': row[3],
+                            'clientID': row[4],
+                            'orderDate': row[5].isoformat(),
+                            'status': row[6],
+                            'orderStatus': row[7],
+                            'orderDeliverDate': row[8].isoformat() if row[8] else None,
+                            'fullName': row[9],
+                            'email': row[10],
+                            'phoneNum': row[11],
+                            'shippingAddress': row[12],
+                            'items': []
+                        }
+                    
+                    orders[order_id]['items'].append({
+                        'itemId': row[13],
+                        'ownerName': row[14],
+                        'quantity': row[15],
+                        'originalPrice': float(row[16]),
+                        'itemName': row[17],
+                        'itemImage': base64.b64encode(row[18]).decode('utf-8') if row[18] else None,
+                        'negotiatedPrice': float(row[19]) if row[19] else None
+                    })
+                
+                return True, list(orders.values())
+                
+        except Exception as e:
+            print(f"Error in get_user_orders: {str(e)}")
+            return False, str(e)
+    
+    def get_user_orders(self, user_id):
+     try:
+        with pyodbc.connect(self.conn_str) as conn:
+            cursor = conn.cursor()
+            
+            query = """
+                WITH LatestAcceptedNegotiation AS (
+                    SELECT 
+                        cartID,
+                        productID,
+                        quantity,
+                        newPrice,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY cartID, productID, quantity
+                            ORDER BY timestamp DESC
+                        ) as rn
+                    FROM price_negotiations
+                    WHERE negotiation_status = 'Accepted'
+                )
+                SELECT 
+                    o.orderID,
+                    o.cartID,
+                    o.totalPrice,
+                    o.ownerID,
+                    o.clientID,
+                    o.orderDate,
+                    o.status,
+                    o.orderStatus,
+                    o.orderDeliverDate,
+                    o.fullName,
+                    o.email,
+                    o.phoneNum,
+                    o.shippingAddress,
+                    ci.itemID,
+                    ci.ownerName,
+                    ci.quantity,
+                    ci.price as originalPrice,
+                    i.itemName,
+                    i.itemImage,
+                    lan.newPrice as negotiatedPrice,
+                    i.ownerID as productOwnerID
+                FROM Orders o
+                INNER JOIN cart_items ci ON o.cartID = ci.cartID
+                INNER JOIN Items i ON ci.itemID = i.itemID
+                LEFT JOIN LatestAcceptedNegotiation lan ON 
+                    lan.cartID = o.cartID 
+                    AND lan.productID = ci.itemID
+                    AND lan.quantity = ci.quantity
+                    AND lan.rn = 1
+                WHERE o.clientID = ?
+                ORDER BY o.orderDate DESC
+            """
+            
+            cursor.execute(query, (user_id,))
+            rows = cursor.fetchall()
+            
+            if not rows:
+                return False, "No orders found"
+            
+            # Group items by order and match owner
+            orders = {}
+            for row in rows:
+                order_id = row[0]
+                owner_id = row[3]  # Order ownerID
+                product_owner_id = row[20]  # Product ownerID
+                
+                # Only process if the product owner matches the order owner
+                if owner_id == product_owner_id:
+                    if order_id not in orders:
+                        orders[order_id] = {
+                            'orderID': order_id,
+                            'cartID': row[1],
+                            'totalPrice': float(row[2]),
+                            'ownerID': owner_id,
+                            'clientID': row[4],
+                            'orderDate': row[5].isoformat(),
+                            'status': row[6],
+                            'orderStatus': row[7],
+                            'orderDeliverDate': row[8].isoformat() if row[8] else None,
+                            'fullName': row[9],
+                            'email': row[10],
+                            'phoneNum': row[11],
+                            'shippingAddress': row[12],
+                            'items': []
+                        }
+                    
+                    orders[order_id]['items'].append({
+                        'itemId': row[13],
+                        'ownerName': row[14],
+                        'quantity': row[15],
+                        'originalPrice': float(row[16]),
+                        'itemName': row[17],
+                        'itemImage': base64.b64encode(row[18]).decode('utf-8') if row[18] else None,
+                        'negotiatedPrice': float(row[19]) if row[19] else None
+                    })
+       
+            
+            return True, list(orders.values())
+            
+     except Exception as e:
+        print(f"Error in get_user_orders: {str(e)}")
+        return False, str(e)
+     
+    def get_owner_orders(self, user_id):
+     try:
+        with pyodbc.connect(self.conn_str) as conn:
+            cursor = conn.cursor()
+            
+            query = """
+                WITH LatestAcceptedNegotiation AS (
+                    SELECT 
+                        cartID,
+                        productID,
+                        quantity,
+                        newPrice,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY cartID, productID, quantity
+                            ORDER BY timestamp DESC
+                        ) as rn
+                    FROM price_negotiations
+                    WHERE negotiation_status = 'Accepted'
+                )
+                SELECT 
+                    o.orderID,
+                    o.cartID,
+                    o.totalPrice,
+                    o.ownerID,
+                    o.clientID,
+                    o.orderDate,
+                    o.status,
+                    o.orderStatus,
+                    o.orderDeliverDate,
+                    o.fullName,
+                    o.email,
+                    o.phoneNum,
+                    o.shippingAddress,
+                    ci.itemID,
+                    ci.ownerName,
+                    ci.quantity,
+                    ci.price as originalPrice,
+                    i.itemName,
+                    i.itemImage,
+                    lan.newPrice as negotiatedPrice,
+                    i.ownerID as productOwnerID
+                FROM Orders o
+                INNER JOIN cart_items ci ON o.cartID = ci.cartID
+                INNER JOIN Items i ON ci.itemID = i.itemID
+                LEFT JOIN LatestAcceptedNegotiation lan ON 
+                    lan.cartID = o.cartID 
+                    AND lan.productID = ci.itemID
+                    AND lan.quantity = ci.quantity
+                    AND lan.rn = 1
+                WHERE o.ownerID = ?
+                ORDER BY o.orderDate DESC
+            """
+            
+            cursor.execute(query, (user_id,))
+            rows = cursor.fetchall()
+            
+            if not rows:
+                return False, "No orders found"
+            
+            # Group items by order and match owner
+            orders = {}
+            for row in rows:
+                order_id = row[0]
+                owner_id = row[3]  # Order ownerID
+                product_owner_id = row[20]  # Product ownerID
+                
+                # Only process if the product owner matches the order owner
+                if owner_id == product_owner_id:
+                    if order_id not in orders:
+                        orders[order_id] = {
+                            'orderID': order_id,
+                            'cartID': row[1],
+                            'totalPrice': float(row[2]),
+                            'ownerID': owner_id,
+                            'clientID': row[4],
+                            'orderDate': row[5].isoformat(),
+                            'status': row[6],
+                            'orderStatus': row[7],
+                            'orderDeliverDate': row[8].isoformat() if row[8] else None,
+                            'fullName': row[9],
+                            'email': row[10],
+                            'phoneNum': row[11],
+                            'shippingAddress': row[12],
+                            'items': []
+                        }
+                    
+                    orders[order_id]['items'].append({
+                        'itemId': row[13],
+                        'ownerName': row[14],
+                        'quantity': row[15],
+                        'originalPrice': float(row[16]),
+                        'itemName': row[17],
+                        'itemImage': base64.b64encode(row[18]).decode('utf-8') if row[18] else None,
+                        'negotiatedPrice': float(row[19]) if row[19] else None
+                    })
+       
+            
+            return True, list(orders.values())
+            
+     except Exception as e:
+        print(f"Error in get_user_orders: {str(e)}")
+        return False, str(e)
+    def update_order_status(self, order_id, new_status, owner_id):
+        try:
+            with pyodbc.connect(self.conn_str) as conn:
+                cursor = conn.cursor()
+                
+                # Verify owner has permission to update this order
+                query = """
+                    UPDATE Orders 
+                    SET orderStatus = ?
+                    WHERE orderID = ? AND ownerID = ?
+                """
+                
+                cursor.execute(query, (new_status, order_id, owner_id))
+                conn.commit()
+                
+                if cursor.rowcount == 0:
+                    return False, "Order not found or you don't have permission to update it"
+                
+                return True, "Order status updated successfully"
+                
+        except Exception as e:
+            print(f"Error in update_order_status: {str(e)}")
+            return False, str(e)
+    
+    def get_owner_finances(self, owner_id):
+     try:
+        with pyodbc.connect(self.conn_str) as conn:
+            cursor = conn.cursor()
+            
+            query = """
+                WITH LatestAcceptedNegotiation AS (
+                    SELECT 
+                        cartID,
+                        productID,
+                        quantity,
+                        newPrice,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY cartID, productID, quantity
+                            ORDER BY timestamp DESC
+                        ) as rn
+                    FROM price_negotiations
+                    WHERE negotiation_status = 'Accepted'
+                ),
+                MonthlyFinances AS (
+                    SELECT 
+                        DATEADD(MONTH, DATEDIFF(MONTH, 0, f.[timestamp]), 0) as month_start,
+                        SUM(f.totalAmount) as monthly_total,
+                        COUNT(DISTINCT f.orderID) as order_count
+                    FROM Finances f
+                    WHERE f.paidToUserID = ?
+                    GROUP BY DATEADD(MONTH, DATEDIFF(MONTH, 0, f.[timestamp]), 0)
+                )
+                SELECT 
+                    f.financeID,
+                    f.orderID,
+                    f.[timestamp],
+                    f.totalAmount,
+                    u_payer.FirstName + ' ' + u_payer.LastName as payer_name,
+                    u_payer.Email as payer_email,
+                    o.orderStatus,
+                    o.orderDeliverDate,
+                    i.itemName,
+                    ci.quantity,
+                    COALESCE(lan.newPrice, ci.price) as final_price,
+                    mf.month_start,
+                    mf.monthly_total,
+                    mf.order_count,
+                    ci.price as original_price,
+                    lan.newPrice as negotiated_price
+                FROM Finances f
+                INNER JOIN Users u_payer ON f.paidByUserID = u_payer.UserId
+                INNER JOIN Orders o ON f.orderID = o.orderID
+                INNER JOIN cart_items ci ON o.cartID = ci.cartID
+                INNER JOIN Items i ON ci.itemID = i.itemID
+                LEFT JOIN LatestAcceptedNegotiation lan ON 
+                    lan.cartID = o.cartID 
+                    AND lan.productID = ci.itemID
+                    AND lan.quantity = ci.quantity
+                    AND lan.rn = 1
+                CROSS APPLY (
+                    SELECT TOP 1 month_start, monthly_total, order_count
+                    FROM MonthlyFinances
+                    WHERE month_start <= f.[timestamp]
+                    ORDER BY month_start DESC
+                ) mf
+                WHERE f.paidToUserID = ?
+                ORDER BY f.[timestamp] DESC
+            """
+            
+            cursor.execute(query, (owner_id, owner_id))
+            rows = cursor.fetchall()
+            
+            if not rows:
+                return False, "No financial records found"
+            
+            # Process the results
+            finances = []
+            monthly_summary = {}
+            
+            for row in rows:
+                finance_record = {
+                    'financeID': row[0],
+                    'orderID': row[1],
+                    'timestamp': row[2].isoformat(),
+                    'amount': float(row[3]),
+                    'payerInfo': {
+                        'name': row[4],
+                        'email': row[5]
+                    },
+                    'orderStatus': row[6],
+                    'deliveryDate': row[7].isoformat() if row[7] else None,
+                    'itemDetails': {
+                        'name': row[8],
+                        'quantity': row[9],
+                        'finalPrice': float(row[10]),
+                        'originalPrice': float(row[14]),
+                        'negotiatedPrice': float(row[15]) if row[15] else None
+                    },
+                    'monthSummary': {
+                        'monthStart': row[11].isoformat(),
+                        'monthlyTotal': float(row[12]),
+                        'orderCount': row[13]
+                    }
+                }
+                finances.append(finance_record)
+                
+                # Track monthly summaries
+                month_key = row[11].strftime('%Y-%m')
+                if month_key not in monthly_summary:
+                    monthly_summary[month_key] = {
+                        'monthStart': row[11].isoformat(),
+                        'total': float(row[12]),
+                        'orderCount': row[13]
+                    }
+            
+            return True, {
+                'transactions': finances,
+                'monthlySummary': list(monthly_summary.values())
+            }
+            
+     except Exception as e:
+        print(f"Error in get_owner_finances: {str(e)}")
         return False, str(e)

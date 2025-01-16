@@ -66,22 +66,9 @@ const ConsumerDashboard = () => {
     
 
             {/* Pending Orders */}
-        <Link to="/pending-orders">
-          <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer bg-white border-green-500 border-l-4">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-green-100 rounded-full">
-                <ShoppingBag className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-lg text-gray-900">Pending Orders</h3>
-                <p className="text-sm text-gray-500">Track ongoing orders</p>
-              </div>
-            </div>
-          </Card>
-        </Link>
-
+       
         {/* Order History */}
-        <Link to="/order-history">
+        <Link to={`/order-history/${user.userId}`}>
           <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer bg-white border-green-500 border-l-4">
             <div className="flex items-center space-x-4">
               <div className="p-3 bg-green-100 rounded-full">

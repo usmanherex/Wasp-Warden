@@ -33,6 +33,8 @@ import ConsumerDashboard from './pages/ConsumerDashboard';
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
 import ConsumerNegotiationsPage from './pages/ConsumerNegotiations';
+import PaymentPage from './pages/Payments';
+import FinanceDashboard from './pages/FinanceDashboard';
 
 const AppContent = () => {
   const location = useLocation();
@@ -96,6 +98,8 @@ const showNavbar = !['/login', '/signup','/forgot-password', '/reset-password'].
         <Route path="/pending-orders" element={<PendingOrders />} />
         <Route path="/consumer-dashboard" element={<ConsumerDashboard />} />
         <Route path="/consumer-negotiations" element={<ConsumerNegotiationsPage />} />
+        <Route path="/stripe-payment" element={<PaymentPage />} />
+        <Route path="/finances" element={<FinanceDashboard />} />
       </Routes>
 
       {showFooter && <Footer />}
