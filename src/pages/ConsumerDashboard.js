@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Plus, 
@@ -16,12 +16,36 @@ import {
   AlertTriangle,
   PieChart,
   Calendar,
-  DollarSign,User, Handshake
+  DollarSign,User, Handshake,
+
+  ThumbsUp,
+
 } from 'lucide-react';
 import { Card } from '../components/ui/Card2';
 
 const ConsumerDashboard = () => {
+  const [analytics, setAnalytics] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const user = JSON.parse(localStorage.getItem('user'));
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        const response = await fetch(`http://localhost:5000/api/consumer/analytics/${user.userId}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch analytics');
+        }
+        const data = await response.json();
+        setAnalytics(data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAnalytics();
+  }, [user.userId]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white p-6">
@@ -31,34 +55,38 @@ const ConsumerDashboard = () => {
       <div className="mb-8 bg-white rounded-xl shadow-lg p-6">
         <div className="flex items-center mb-6">
           <TrendingUp className="h-6 w-6 text-green-600 mr-2" />
-          <h2 className="text-xl font-semibold text-gray-900">Performance Overview</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Overview</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-4">
-            <DollarSign className="h-6 w-6 text-green-600 mb-2" />
-            <p className="text-sm text-gray-600">Monthly Revenue</p>
-            <p className="text-2xl font-bold text-green-600">$2,450</p>
-            <p className="text-xs text-green-600">↑ 12% from last month</p>
+        {loading ? (
+          <div className="text-center py-4">Loading analytics...</div>
+        ) : error ? (
+          <div className="text-center text-red-600 py-4">{error}</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-4">
+              <DollarSign className="h-6 w-6 text-green-600 mb-2" />
+              <p className="text-sm text-gray-600">Total Spendings</p>
+              <p className="text-2xl font-bold text-green-600">
+                ${analytics.total_spendings.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </p>
+            </div>
+            <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-4">
+              <ShoppingBag className="h-6 w-6 text-green-600 mb-2" />
+              <p className="text-sm text-gray-600">Total Orders</p>
+              <p className="text-2xl font-bold text-green-600">{analytics.total_orders}</p>
+            </div>
+            <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-4">
+              <ThumbsUp className="h-6 w-6 text-green-600 mb-2" />
+              <p className="text-sm text-gray-600">Negotiations Accepted</p>
+              <p className="text-2xl font-bold text-green-600">{analytics.accepted_negotiations}</p>
+            </div>
+            <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-4">
+              <Clock className="h-6 w-6 text-green-600 mb-2" />
+              <p className="text-sm text-gray-600">Pending Orders</p>
+              <p className="text-2xl font-bold text-green-600">{analytics.pending_orders}</p>
+            </div>
           </div>
-          <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-4">
-            <Package className="h-6 w-6 text-green-600 mb-2" />
-            <p className="text-sm text-gray-600">Active Products</p>
-            <p className="text-2xl font-bold text-green-600">12</p>
-            <p className="text-xs text-green-600">↑ 3 new this week</p>
-          </div>
-          <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-4">
-            <ShoppingBag className="h-6 w-6 text-green-600 mb-2" />
-            <p className="text-sm text-gray-600">Completed Orders</p>
-            <p className="text-2xl font-bold text-green-600">5</p>
-            
-          </div>
-          <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-4">
-            <ShoppingBag className="h-6 w-6 text-green-600 mb-2" />
-            <p className="text-sm text-gray-600">Pending Orders</p>
-            <p className="text-2xl font-bold text-green-600">8</p>
-            <p className="text-xs text-green-600">3 require action</p>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Main Actions Grid */}

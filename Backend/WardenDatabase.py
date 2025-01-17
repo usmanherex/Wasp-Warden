@@ -1,6 +1,7 @@
 from base64 import b64encode
 import base64
 from datetime import datetime
+from http import HTTPStatus
 from io import BytesIO
 import sqlite3
 import pyodbc
@@ -2588,6 +2589,18 @@ class WardernDatabase:
             
             created_orders = []
             
+            # Check available quantities before processing
+            for item in items:
+                cursor.execute("""
+                    SELECT quantityAvailable 
+                    FROM Items 
+                    WHERE itemID = ?
+                """, (item['itemId'],))
+                available_qty = cursor.fetchone()[0]
+                
+                if available_qty < item['quantity']:
+                    raise Exception(f"Not enough quantity available for item {item['itemId']}. Available: {available_qty}, Requested: {item['quantity']}")
+            
             for owner_id, owner_items in items_by_owner.items():
                 # Calculate totals
                 subtotal = sum(item['price'] * item['quantity'] for item in owner_items)
@@ -2617,18 +2630,29 @@ class WardernDatabase:
                 ))
                 cursor.commit()
                 
-                
-                cursor.execute("SELECT orderID FROM orders WHERE cartID = ? ", 
-               (self.get_active_cart_id(cursor, user_id),))
+                cursor.execute("SELECT orderID FROM orders WHERE cartID = ? AND ownerID = ?", 
+                (self.get_active_cart_id(cursor, user_id), owner_id))
                 order_id = cursor.fetchone()[0]
-                print(order_id)
+                
+                # Update item quantities
+                for item in owner_items:
+                    update_quantity_query = """
+                        UPDATE Items 
+                        SET quantityAvailable = quantityAvailable - ?
+                        WHERE itemID = ?
+                    """
+                    cursor.execute(update_quantity_query, (
+                        item['quantity'],
+                        item['itemId']
+                    ))
+                    cursor.commit()
+                
                 # Insert finance record
                 finance_query = """
                     INSERT INTO finances (
                         orderID, paidByUserID, paidToUserID, totalAmount
                     )
                     VALUES (?, ?, ?, ?)
-                    
                 """
                 cursor.execute(finance_query, (
                     order_id,
@@ -2638,13 +2662,11 @@ class WardernDatabase:
                 ))
                 cursor.commit()
                 
-                
-                cursor.execute("SELECT financeID FROM finances WHERE orderID = ? ", 
+                cursor.execute("SELECT financeID FROM finances WHERE orderID = ?", 
                 (order_id,))
                 
-                
                 finance_id = cursor.fetchone()[0]
-                print(finance_id)
+                
                 created_orders.append({
                     'orderId': order_id,
                     'financeId': finance_id,
@@ -2677,10 +2699,10 @@ class WardernDatabase:
             }
             
      except Exception as e:
-         print(f"Error in process_order_and_payment: {str(e)}")
-         conn.rollback()  # Rollback on error
-         return False, str(e)
-# Helper functions
+        print(f"Error in process_order_and_payment: {str(e)}")
+        if 'conn' in locals():
+            conn.rollback()  # Rollback on error
+        return False, str(e)
     def get_owner_id(self, cursor, item_id):
      query = "SELECT ownerID FROM items WHERE itemID = ?"
      cursor.execute(query, (item_id,))
@@ -2998,6 +3020,7 @@ class WardernDatabase:
      except Exception as e:
         print(f"Error in get_user_orders: {str(e)}")
         return False, str(e)
+   
     def update_order_status(self, order_id, new_status, owner_id):
         try:
             with pyodbc.connect(self.conn_str) as conn:
@@ -3022,122 +3045,486 @@ class WardernDatabase:
             print(f"Error in update_order_status: {str(e)}")
             return False, str(e)
     
-    def get_owner_finances(self, owner_id):
+    
+    def get_finance_analytics(self,owner_id):
+     try:
+         with pyodbc.connect(self.conn_str) as conn:
+            cursor = conn.cursor()
+            
+            # Get basic financial statistics
+            cursor.execute("""
+                SELECT 
+                    COUNT(f.financeID) as total_transactions,
+                    SUM(f.totalAmount) as total_earnings,
+                    AVG(f.totalAmount) as avg_transaction,
+                    MIN(f.totalAmount) as min_transaction,
+                    MAX(f.totalAmount) as max_transaction
+                FROM Finances f
+                WHERE f.paidToUserID = ?
+            """, owner_id)
+            
+            basic_stats = cursor.fetchone()
+            
+            # Get monthly earnings for the past 12 months
+            cursor.execute("""
+                SELECT 
+                    FORMAT([timestamp], 'yyyy-MM') as month,
+                    SUM(totalAmount) as monthly_earnings,
+                    COUNT(financeID) as transaction_count
+                FROM Finances
+                WHERE paidToUserID = ?
+                    AND [timestamp] >= DATEADD(month, -12, GETDATE())
+                GROUP BY FORMAT([timestamp], 'yyyy-MM')
+                ORDER BY month DESC
+            """, owner_id)
+            
+            monthly_data = cursor.fetchall()
+            
+            # Get order status distribution
+            cursor.execute("""
+                SELECT 
+                    o.orderStatus,
+                    COUNT(*) as status_count
+                FROM Orders o
+                INNER JOIN Finances f ON o.orderID = f.orderID
+                WHERE f.paidToUserID = ?
+                GROUP BY o.orderStatus
+            """, owner_id)
+            
+            status_distribution = cursor.fetchall()
+            
+            # Get pending orders (not delivered)
+            cursor.execute("""
+                SELECT 
+                    o.orderID,
+                    o.orderDate,
+                    o.totalPrice,
+                    o.orderStatus
+                FROM Orders o
+                WHERE o.ownerID = ?
+                    AND o.orderStatus != 'Delivered'
+                ORDER BY o.orderDate DESC
+            """, owner_id)
+            
+            pending_orders = cursor.fetchall()
+            
+            # Get recent finances with order status
+            cursor.execute("""
+                SELECT TOP 50
+                    f.financeID,
+                    f.orderID,
+                    f.[timestamp],
+                    f.totalAmount,
+                    o.orderStatus as status,
+                    u.FirstName + ' ' + u.LastName as customer_name
+                FROM Finances f
+                INNER JOIN Orders o ON f.orderID = o.orderID
+                INNER JOIN Users u ON f.paidByUserID = u.UserId
+                WHERE f.paidToUserID = ?
+                ORDER BY f.[timestamp] DESC
+            """, owner_id)
+            
+            finances = cursor.fetchall()
+            
+            return {
+                'basic_stats': {
+                    'total_transactions': basic_stats[0],
+                    'total_earnings': float(basic_stats[1]) if basic_stats[1] else 0,
+                    'avg_transaction': float(basic_stats[2]) if basic_stats[2] else 0,
+                    'min_transaction': float(basic_stats[3]) if basic_stats[3] else 0,
+                    'max_transaction': float(basic_stats[4]) if basic_stats[4] else 0
+                },
+                'monthly_data': [{
+                    'month': row[0],
+                    'earnings': float(row[1]),
+                    'transactions': row[2]
+                } for row in monthly_data],
+                'status_distribution': [{
+                    'status': row[0],
+                    'count': row[1]
+                } for row in status_distribution],
+                'pending_orders': [{
+                    'orderID': row[0],
+                    'orderDate': row[1].isoformat() if row[1] else None,
+                    'totalPrice': float(row[2]),
+                    'orderStatus': row[3]
+                } for row in pending_orders],
+                'finances': [{
+                    'financeID': row[0],
+                    'orderID': row[1],
+                    'timestamp': row[2].isoformat() if row[2] else None,
+                    'totalAmount': float(row[3]),
+                    'status': row[4],
+                    'customerName': row[5]
+                } for row in finances]
+            }
+            
+     except Exception as e:
+        print(f"Error: {str(e)}")
+        return None
+     
+    def filter_owner_finances(self, owner_id, start_date=None, end_date=None, status=None):
      try:
         with pyodbc.connect(self.conn_str) as conn:
             cursor = conn.cursor()
             
             query = """
-                WITH LatestAcceptedNegotiation AS (
-                    SELECT 
-                        cartID,
-                        productID,
-                        quantity,
-                        newPrice,
-                        ROW_NUMBER() OVER (
-                            PARTITION BY cartID, productID, quantity
-                            ORDER BY timestamp DESC
-                        ) as rn
-                    FROM price_negotiations
-                    WHERE negotiation_status = 'Accepted'
-                ),
-                MonthlyFinances AS (
-                    SELECT 
-                        DATEADD(MONTH, DATEDIFF(MONTH, 0, f.[timestamp]), 0) as month_start,
-                        SUM(f.totalAmount) as monthly_total,
-                        COUNT(DISTINCT f.orderID) as order_count
-                    FROM Finances f
-                    WHERE f.paidToUserID = ?
-                    GROUP BY DATEADD(MONTH, DATEDIFF(MONTH, 0, f.[timestamp]), 0)
-                )
                 SELECT 
                     f.financeID,
                     f.orderID,
                     f.[timestamp],
                     f.totalAmount,
-                    u_payer.FirstName + ' ' + u_payer.LastName as payer_name,
-                    u_payer.Email as payer_email,
-                    o.orderStatus,
-                    o.orderDeliverDate,
-                    i.itemName,
-                    ci.quantity,
-                    COALESCE(lan.newPrice, ci.price) as final_price,
-                    mf.month_start,
-                    mf.monthly_total,
-                    mf.order_count,
-                    ci.price as original_price,
-                    lan.newPrice as negotiated_price
+                    o.orderStatus as status,
+                    u.FirstName + ' ' + u.LastName as customer_name
                 FROM Finances f
-                INNER JOIN Users u_payer ON f.paidByUserID = u_payer.UserId
                 INNER JOIN Orders o ON f.orderID = o.orderID
-                INNER JOIN cart_items ci ON o.cartID = ci.cartID
-                INNER JOIN Items i ON ci.itemID = i.itemID
-                LEFT JOIN LatestAcceptedNegotiation lan ON 
-                    lan.cartID = o.cartID 
-                    AND lan.productID = ci.itemID
-                    AND lan.quantity = ci.quantity
-                    AND lan.rn = 1
-                CROSS APPLY (
-                    SELECT TOP 1 month_start, monthly_total, order_count
-                    FROM MonthlyFinances
-                    WHERE month_start <= f.[timestamp]
-                    ORDER BY month_start DESC
-                ) mf
+                INNER JOIN Users u ON f.paidByUserID = u.UserId
                 WHERE f.paidToUserID = ?
-                ORDER BY f.[timestamp] DESC
             """
-            
-            cursor.execute(query, (owner_id, owner_id))
-            rows = cursor.fetchall()
-            
-            if not rows:
-                return False, "No financial records found"
-            
-            # Process the results
-            finances = []
-            monthly_summary = {}
-            
-            for row in rows:
-                finance_record = {
-                    'financeID': row[0],
-                    'orderID': row[1],
-                    'timestamp': row[2].isoformat(),
-                    'amount': float(row[3]),
-                    'payerInfo': {
-                        'name': row[4],
-                        'email': row[5]
-                    },
-                    'orderStatus': row[6],
-                    'deliveryDate': row[7].isoformat() if row[7] else None,
-                    'itemDetails': {
-                        'name': row[8],
-                        'quantity': row[9],
-                        'finalPrice': float(row[10]),
-                        'originalPrice': float(row[14]),
-                        'negotiatedPrice': float(row[15]) if row[15] else None
-                    },
-                    'monthSummary': {
-                        'monthStart': row[11].isoformat(),
-                        'monthlyTotal': float(row[12]),
-                        'orderCount': row[13]
-                    }
-                }
-                finances.append(finance_record)
+            params = [owner_id]
+            print(end_date)
+            if start_date:
+                query += " AND CAST(f.[timestamp] AS DATE) >= ?"
+                params.append(start_date)
+            if end_date:
+                query += " AND CAST(f.[timestamp] AS DATE) <= ?"
+                params.append(end_date)
+            if status:
+                query += " AND o.orderStatus = ?"
+                params.append(status)
                 
-                # Track monthly summaries
-                month_key = row[11].strftime('%Y-%m')
-                if month_key not in monthly_summary:
-                    monthly_summary[month_key] = {
-                        'monthStart': row[11].isoformat(),
-                        'total': float(row[12]),
-                        'orderCount': row[13]
-                    }
+            query += " ORDER BY f.[timestamp] DESC"
+            cursor.execute(query, params)
             
-            return True, {
-                'transactions': finances,
-                'monthlySummary': list(monthly_summary.values())
-            }
+            results = cursor.fetchall()
+            
+            return [{
+                'financeID': row[0],
+                'orderID': row[1],
+                'timestamp': row[2].isoformat() if row[2] else None,
+                'totalAmount': float(row[3]),
+                'status': row[4],
+                'customerName': row[5]
+            } for row in results]
             
      except Exception as e:
-        print(f"Error in get_owner_finances: {str(e)}")
-        return False, str(e)
+        print(f"Error in filter_owner_finances: {str(e)}")
+        return None
+     
+    def get_finance_summary(self, owner_id, period='month'):
+     try:
+        with pyodbc.connect(self.conn_str) as conn:
+            cursor = conn.cursor()
+            
+            # Set date format based on period
+            date_format = {
+                'day': 'yyyy-MM-dd',
+                'week': 'yyyy-WW',
+                'month': 'yyyy-MM',
+                'year': 'yyyy'
+            }.get(period, 'yyyy-MM')
+                
+            cursor.execute(f"""
+                SELECT 
+                    FORMAT([timestamp], ?) as period,
+                    COUNT(*) as transaction_count,
+                    SUM(totalAmount) as total_amount,
+                    AVG(totalAmount) as avg_amount
+                FROM Finances
+                WHERE paidToUserID = ?
+                GROUP BY FORMAT([timestamp], ?)
+                ORDER BY period DESC
+            """, date_format, owner_id, date_format)
+            
+            results = cursor.fetchall()
+            
+            return [{
+                'period': row[0],
+                'transactionCount': row[1],
+                'totalAmount': float(row[2]) if row[2] else 0,
+                'avgAmount': float(row[3]) if row[3] else 0
+            } for row in results]
+            
+     except Exception as e:
+        print(f"Error in get_finance_summary: {str(e)}")
+        return None
+     
+    def get_agribusiness_analytics(self, owner_id):
+        try:
+            with pyodbc.connect(self.conn_str) as conn:
+                cursor = conn.cursor()
+                
+                # Get monthly revenue
+                cursor.execute("""
+                    SELECT ISNULL(SUM(f.totalAmount), 0) as monthly_revenue
+                    FROM dbo.Finances f
+                    INNER JOIN dbo.Orders o ON f.orderID = o.orderID
+                    WHERE o.ownerID = ?
+                    AND f.[timestamp] >= DATEADD(month, -1, GETDATE())
+                """, owner_id)
+                monthly_revenue = cursor.fetchone()[0]
+
+                # Get active products count
+                cursor.execute("""
+                    SELECT COUNT(*) as active_products
+                    FROM Items
+                    WHERE ownerID = ? AND quantityAvailable > 0
+                """, owner_id)
+                active_products = cursor.fetchone()[0]
+
+                # Get completed orders
+                cursor.execute("""
+                    SELECT COUNT(*) as completed_orders
+                    FROM dbo.Orders
+                    WHERE ownerID = ? AND orderStatus = 'Delivered'
+                """, owner_id)
+                completed_orders = cursor.fetchone()[0]
+
+                # Get pending orders
+                cursor.execute("""
+                    SELECT COUNT(*) as pending_orders
+                    FROM dbo.Orders
+                    WHERE ownerID = ? AND orderStatus != 'Delivered'
+                """, owner_id)
+                pending_orders = cursor.fetchone()[0]
+
+                return {
+                    'monthly_revenue': float(monthly_revenue),
+                    'active_products': active_products,
+                    'completed_orders': completed_orders,
+                    'pending_orders': pending_orders
+                }
+
+        except Exception as e:
+            print(f"Error fetching agribusiness analytics: {str(e)}")
+            return None
+
+    def get_farmer_analytics(self, owner_id):
+        try:
+            with pyodbc.connect(self.conn_str) as conn:
+                cursor = conn.cursor()
+                
+                # Get monthly revenue
+                cursor.execute("""
+                    SELECT ISNULL(SUM(f.totalAmount), 0) as monthly_revenue
+                    FROM dbo.Finances f
+                    INNER JOIN dbo.Orders o ON f.orderID = o.orderID 
+                    WHERE o.ownerID = ?
+                    AND f.[timestamp] >= DATEADD(month, -1, GETDATE())
+                """, owner_id)
+                monthly_revenue = cursor.fetchone()[0]
+
+                # Get active products count
+                cursor.execute("""
+                    SELECT COUNT(*) as active_products
+                    FROM Items
+                    WHERE ownerID = ? AND quantityAvailable > 0
+                """, owner_id)
+                active_products = cursor.fetchone()[0]
+
+                # Get total spendings
+                cursor.execute("""
+                    SELECT ISNULL(SUM(f.totalAmount), 0) as total_spendings
+                    FROM dbo.Finances f
+                    INNER JOIN dbo.Orders o ON f.orderID = o.orderID
+                    WHERE o.clientID = ?
+                """, owner_id)
+                total_spendings = cursor.fetchone()[0]
+                # Get completed orders
+                cursor.execute("""
+                    SELECT COUNT(*) as completed_orders
+                    FROM dbo.Orders
+                    WHERE ownerID = ? AND orderStatus = 'Delivered'
+                """, owner_id)
+                completed_orders = cursor.fetchone()[0]
+
+                # Get pending orders
+                cursor.execute("""
+                    SELECT COUNT(*) as pending_orders
+                    FROM dbo.Orders
+                    WHERE ownerID = ? AND orderStatus != 'Delivered'
+                """, owner_id)
+                pending_orders = cursor.fetchone()[0]
+
+                # Get active negotiations
+                cursor.execute("""
+                    SELECT COUNT(*) as active_negotiations
+                    FROM price_negotiations
+                    WHERE farmerID = ? AND negotiation_status = 'Pending'
+                """, owner_id)
+                active_negotiations = cursor.fetchone()[0]
+
+                return {
+                    'monthly_revenue': float(monthly_revenue),
+                    'active_products': active_products,
+                    'completed_orders': completed_orders,
+                    'pending_orders': pending_orders,
+                    'active_negotiations': active_negotiations,
+                    'total_spendings':float(total_spendings)
+                }
+
+        except Exception as e:
+            print(f"Error fetching farmer analytics: {str(e)}")
+            return None
+
+    def get_consumer_analytics(self, user_id):
+        try:
+            with pyodbc.connect(self.conn_str) as conn:
+                cursor = conn.cursor()
+                
+                # Get total orders placed
+                cursor.execute("""
+                    SELECT COUNT(*) as total_orders
+                    FROM dbo.Orders
+                    WHERE clientID = ?
+                """, user_id)
+                total_orders = cursor.fetchone()[0]
+
+                # Get total spendings
+                cursor.execute("""
+                    SELECT ISNULL(SUM(f.totalAmount), 0) as total_spendings
+                    FROM dbo.Finances f
+                    INNER JOIN dbo.Orders o ON f.orderID = o.orderID
+                    WHERE o.clientID = ?
+                """, user_id)
+                total_spendings = cursor.fetchone()[0]
+
+                # Get accepted negotiations
+                cursor.execute("""
+                    SELECT COUNT(*) as accepted_negotiations
+                    FROM price_negotiations
+                    WHERE consumerID = ? AND negotiation_status = 'Accepted'
+                """, user_id)
+                accepted_negotiations = cursor.fetchone()[0]
+
+                # Get pending orders
+                cursor.execute("""
+                    SELECT COUNT(*) as pending_orders
+                    FROM dbo.Orders
+                    WHERE clientID = ? AND orderStatus != 'Delivered'
+                """, user_id)
+                pending_orders = cursor.fetchone()[0]
+
+                return {
+                    'total_orders': total_orders,
+                    'total_spendings': float(total_spendings),
+                    'accepted_negotiations': accepted_negotiations,
+                    'pending_orders': pending_orders
+                }
+
+        except Exception as e:
+            print(f"Error fetching consumer analytics: {str(e)}")
+            return None
+        
+    def get_user_notifications(self, user_id):
+        try:
+            with pyodbc.connect(self.conn_str) as conn:
+                cursor = conn.cursor()
+                
+                query = """
+                SELECT n.*, 
+                       (SELECT COUNT(*) 
+                        FROM notifications 
+                        WHERE userID = ? AND status = 'unread') as unread_count
+                FROM notifications n
+                WHERE n.userID = ?
+                ORDER BY n.timestamp DESC
+                """
+                
+                cursor.execute(query, (user_id, user_id))
+                columns = [column[0] for column in cursor.description]
+                notifications = []
+                
+                for row in cursor.fetchall():
+                    notification = dict(zip(columns, row))
+                    notifications.append(notification)
+                
+                if notifications:
+                    unread_count = notifications[0]['unread_count']
+                    return {"notifications": notifications, "unread_count": unread_count}, HTTPStatus.OK
+                
+                return {"notifications": [], "unread_count": 0}, HTTPStatus.OK
+                
+        except Exception as e:
+            return {"error": str(e)}, HTTPStatus.INTERNAL_SERVER_ERROR
+
+    def mark_notification_read(self, notification_id, user_id):
+        try:
+            with pyodbc.connect(self.conn_str) as conn:
+                cursor = conn.cursor()
+                
+                # Verify notification belongs to user
+                verify_query = """
+                SELECT userID FROM notifications 
+                WHERE notificationID = ?
+                """
+                cursor.execute(verify_query, (notification_id,))
+                result = cursor.fetchone()
+                
+                if not result:
+                    return {"error": "Notification not found"}, HTTPStatus.NOT_FOUND
+                
+                if result[0] != user_id:
+                    return {"error": "Unauthorized access"}, HTTPStatus.FORBIDDEN
+                
+                update_query = """
+                UPDATE notifications 
+                SET status = 'read'
+                WHERE notificationID = ?
+                """
+                cursor.execute(update_query, (notification_id,))
+                conn.commit()
+                
+                return {"message": "Notification marked as read"}, HTTPStatus.OK
+                
+        except Exception as e:
+            return {"error": str(e)}, HTTPStatus.INTERNAL_SERVER_ERROR
+
+    def delete_notification(self, notification_id, user_id):
+        try:
+            with pyodbc.connect(self.conn_str) as conn:
+                cursor = conn.cursor()
+                
+                # Verify notification belongs to user
+                verify_query = """
+                SELECT userID FROM notifications 
+                WHERE notificationID = ?
+                """
+                cursor.execute(verify_query, (notification_id,))
+                result = cursor.fetchone()
+                
+                if not result:
+                    return {"error": "Notification not found"}, HTTPStatus.NOT_FOUND
+                
+                if result[0] != user_id:
+                    return {"error": "Unauthorized access"}, HTTPStatus.FORBIDDEN
+                
+                delete_query = """
+                DELETE FROM notifications 
+                WHERE notificationID = ?
+                """
+                cursor.execute(delete_query, (notification_id,))
+                conn.commit()
+                
+                return {"message": "Notification deleted successfully"}, HTTPStatus.OK
+                
+        except Exception as e:
+            return {"error": str(e)}, HTTPStatus.INTERNAL_SERVER_ERROR
+
+    def create_notification(self, user_id, notification_type, text):
+        try:
+            with pyodbc.connect(self.conn_str) as conn:
+                cursor = conn.cursor()
+                
+                insert_query = """
+                INSERT INTO notifications (userID, type, text, status)
+                VALUES (?, ?, ?, 'unread')
+                """
+                
+                cursor.execute(insert_query, (user_id, notification_type, text))
+                conn.commit()
+                
+                return {"message": "Notification created successfully"}, HTTPStatus.CREATED
+                
+        except Exception as e:
+            return {"error": str(e)}, HTTPStatus.INTERNAL_SERVER_ERROR

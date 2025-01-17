@@ -1,4 +1,5 @@
 import base64
+from http import HTTPStatus
 import json
 import os
 import secrets
@@ -1614,46 +1615,78 @@ def update_order_status(order_id):
 
 @app.route('/api/ownerFinances/<int:owner_id>', methods=['GET'])
 def get_owner_finances(owner_id):
-    try:
-        # Get query parameters for filtering
-        start_date = request.args.get('startDate')
-        end_date = request.args.get('endDate')
-        min_amount = request.args.get('minAmount')
-        max_amount = request.args.get('maxAmount')
+    analytics = db.get_finance_analytics(owner_id)
+    if analytics:
+        return jsonify(analytics)
+    return jsonify({'error': 'Failed to fetch finance data'}), 500
+
+# Add additional endpoint for filtering finances
+@app.route('/api/ownerFinances/<int:owner_id>/filter', methods=['GET'])
+def filter_finances_route(owner_id):
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    status = request.args.get('status')
+    
+    result = db.filter_owner_finances(owner_id, start_date, end_date, status)
+    if result is not None:
+        return jsonify(result)
+    return jsonify({'error': 'Failed to fetch filtered finance data'}), 500
+
+@app.route('/api/ownerFinances/<int:owner_id>/summary', methods=['GET'])
+def finance_summary_route(owner_id):
+    period = request.args.get('period', 'month')
+    result = db.get_finance_summary(owner_id, period)
+    if result is not None:
+        return jsonify(result)
+    return jsonify({'error': 'Failed to fetch finance summary'}), 500
+
+
+@app.route('/api/agribusiness/analytics/<int:owner_id>', methods=['GET'])
+def get_agribusiness_analytics(owner_id):
+    analytics = db.get_agribusiness_analytics(owner_id)
+    if analytics:
+        return jsonify(analytics)
+    return jsonify({'error': 'Failed to fetch agribusiness analytics'}), 500
+
+@app.route('/api/farmer/analytics/<int:owner_id>', methods=['GET'])
+def get_farmer_analytics(owner_id):
+    analytics = db.get_farmer_analytics(owner_id)
+    if analytics:
+        return jsonify(analytics)
+    return jsonify({'error': 'Failed to fetch farmer analytics'}), 500
+
+@app.route('/api/consumer/analytics/<int:user_id>', methods=['GET'])
+def get_consumer_analytics(user_id):
+    analytics = db.get_consumer_analytics(user_id)
+    if analytics:
+        return jsonify(analytics)
+    return jsonify({'error': 'Failed to fetch consumer analytics'}), 500
+
+@app.route('/api/notifications/<int:user_id>', methods=['GET'])
+def get_notifications(user_id):
+    return db.get_user_notifications(user_id)
+
+@app.route('/api/notifications/<int:notification_id>/read/<int:user_id>', methods=['PUT'])
+def mark_read(notification_id, user_id):
+    return db.mark_notification_read(notification_id, user_id)
+
+@app.route('/api/notifications/<int:notification_id>/<int:user_id>', methods=['DELETE'])
+def delete_notification_route(notification_id, user_id):
+    return db.delete_notification(notification_id, user_id)
+
+@app.route('/api/notifications', methods=['POST'])
+def create_notification_route():
+        data = request.get_json()
+        required_fields = ['user_id', 'type', 'text']
         
-        success, result = db.get_owner_finances(owner_id)
-        
-        if success:
-            # Apply filters if provided
-            filtered_data = result['transactions']
+        if not all(field in data for field in required_fields):
+            return {"error": "Missing required fields"}, HTTPStatus.BAD_REQUEST
             
-            if start_date:
-                filtered_data = [t for t in filtered_data if t['timestamp'] >= start_date]
-            if end_date:
-                filtered_data = [t for t in filtered_data if t['timestamp'] <= end_date]
-            if min_amount:
-                filtered_data = [t for t in filtered_data if t['amount'] >= float(min_amount)]
-            if max_amount:
-                filtered_data = [t for t in filtered_data if t['amount'] <= float(max_amount)]
-                
-            return jsonify({
-                'success': True,
-                'data': {
-                    'transactions': filtered_data,
-                    'monthlySummary': result['monthlySummary']
-                }
-            })
-            
-        return jsonify({
-            'success': False,
-            'message': result
-        })
-        
-    except Exception as e:
-        print(f"Error in get_owner_finances route: {str(e)}")
-        return jsonify({
-            'success': False,
-            'message': str(e)
-        }), 500
+        return db.create_notification(
+            data['user_id'],
+            data['type'],
+            data['text']
+        )
+
 if __name__ == '__main__':
     socketio.run(app, debug=True)

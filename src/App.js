@@ -24,7 +24,7 @@ import AIReportsPage from './pages/AiReports';
 import UserProfile from './pages/UserProfileThirdPerson';
 import NegotiationsPage from './pages/Negotiations';
 import OrderHistoryPage from './pages/OrderHistory';
-import NotificationsPage from './pages/Notifications';
+
 import SavedProductsPage from './pages/SavedProducts';
 import Dashboard from './pages/FarmerDashboard';
 import PendingOrders from './pages/PendingOrders';
@@ -35,6 +35,7 @@ import { ToastContainer } from 'react-toastify';
 import ConsumerNegotiationsPage from './pages/ConsumerNegotiations';
 import PaymentPage from './pages/Payments';
 import FinanceDashboard from './pages/FinanceDashboard';
+import { NotificationsPage } from './pages/Notifications';
 
 const AppContent = () => {
   const location = useLocation();

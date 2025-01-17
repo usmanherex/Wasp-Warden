@@ -382,3 +382,12 @@ BEGIN
 END;
 GO
 
+  -- Notifications table
+CREATE TABLE notifications (
+    notificationID INT IDENTITY(1,1) PRIMARY KEY,
+    userID INT NOT NULL,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    text TEXT NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    type VARCHAR(50) NOT NULL,
+   );

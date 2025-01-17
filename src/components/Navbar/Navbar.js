@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Image from '../../assets/images/ward.png';
-import { Bell, Heart } from 'lucide-react';
+import { Bell, Heart, Trash2, CheckCircle } from 'lucide-react';
+import axios from 'axios';
+
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -12,50 +14,36 @@ const Navbar = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const notificationRef = useRef(null);
   const navigate = useNavigate();
+  
+  const fetchNotifications = async () => {
+    try {
+      const userId = JSON.parse(localStorage.getItem('user'))?.userId;
+      if (!userId) return;
 
+      const response = await axios.get(`http://localhost:5000/api/notifications/${userId}`);
+      const { notifications, unread_count } = response.data;
+      setNotifications(notifications);
+      setUnreadCount(unread_count);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
+  };
   useEffect(() => {
     // Check if user is logged in by looking for token in localStorage
     const token = localStorage.getItem('token');
     const user = JSON.parse(localStorage.getItem('user'));
     setIsLoggedIn(!!token);
     setUserType(user?.userType || '');
-  
-    const mockNotifications = [
-      {
-        id: 1,
-        text: "New order #123 has been placed in your mart. Check it out!",
-        timestamp: new Date(Date.now() - 1000 * 60 * 5),
-        read: false
-      },
-      {
-        id: 2,
-        text: "Your IoT device 'Garden Sensor' detected unusual activity.",
-        timestamp: new Date(Date.now() - 1000 * 60 * 30),
-        read: false
-      },
-      {
-        id: 3,
-        text: "Welcome bonus: 20% off on your next purchase in the marketplace!",
-        timestamp: new Date(Date.now() - 1000 * 60 * 60),
-        read: false
-      },
-      {
-        id: 4,
-        text: "Your monthly report is ready. View your statistics now.",
-        timestamp: new Date(Date.now() - 1000 * 60 * 120),
-        read: true
-      },
-      {
-        id: 5,
-        text: "New message from Support regarding your recent inquiry.",
-        timestamp: new Date(Date.now() - 1000 * 60 * 180),
-        read: true
-      }
-    ];
 
-    setNotifications(mockNotifications);
-    setUnreadCount(mockNotifications.filter(n => !n.read).length);
+    if (token && user) {
+      fetchNotifications();
+      // Set up polling for notifications
+      const interval = setInterval(fetchNotifications, 30000); // every 30 seconds
+      return () => clearInterval(interval);
+    }
+  }, []);
 
+  useEffect(() => {
     const handleClickOutside = (event) => {
       if (notificationRef.current && !notificationRef.current.contains(event.target)) {
         setIsNotificationOpen(false);
@@ -65,6 +53,7 @@ const Navbar = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -78,6 +67,26 @@ const Navbar = () => {
     setIsNotificationOpen(false);
     navigate('/notifications');
   };
+  const handleMarkAsRead = async (notificationId) => {
+    try {
+      const userId = JSON.parse(localStorage.getItem('user'))?.userId;
+      await axios.put(`http://localhost:5000/api/notifications/${notificationId}/read/${userId}`);
+      await fetchNotifications();
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  const handleDelete = async (notificationId) => {
+    try {
+      const userId = JSON.parse(localStorage.getItem('user'))?.userId;
+      await axios.delete(`http://localhost:5000/api/notifications/${notificationId}/${userId}`);
+      await fetchNotifications();
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+    }
+  };
+
 
   const farmerNavigation = [
     { title: "Dashboard", path: "/farmer-dashboard" },
@@ -105,16 +114,82 @@ const Navbar = () => {
     { title: "Contact", path: "/contact" },
     { title: "About us", path: "/about-us" },
   ];
-
-  const formatTime = (date) => {
-    const now = new Date();
-    const diff = now - date;
-    const minutes = Math.floor(diff / 60000);
-    
-    if (minutes < 60) return `${minutes}m ago`;
-    if (minutes < 1440) return `${Math.floor(minutes/60)}h ago`;
-    return `${Math.floor(minutes/1440)}d ago`;
+  const formatTime = (timestamp) => {
+    // Parse the timestamp (Fri, 17 Jan 2025 18:17:42 GMT)
+    const timestampDate = new Date(timestamp);
+  
+    // Extract values from the timestamp
+    const tsDay = timestampDate.getUTCDate();
+    const tsMonth = timestampDate.getUTCMonth();
+    const tsYear = timestampDate.getUTCFullYear();
+    const tsHours = timestampDate.getUTCHours();
+    const tsMinutes = timestampDate.getUTCMinutes();
+    const tsSeconds = timestampDate.getUTCSeconds();
+  
+    // Get the current date
+    const currentDate = new Date();
+  
+    // Extract local values from the current date
+    const currDay = currentDate.getDate();
+    const currMonth = currentDate.getMonth();
+    const currYear = currentDate.getFullYear();
+    const currHours = currentDate.getHours();
+    const currMinutes = currentDate.getMinutes();
+    const currSeconds = currentDate.getSeconds();
+  
+    // Calculate differences for each unit
+    let yearDiff = currYear - tsYear;
+    let monthDiff = currMonth - tsMonth;
+    let dayDiff = currDay - tsDay;
+    let hourDiff = currHours - tsHours;
+    let minuteDiff = currMinutes - tsMinutes;
+    let secondDiff = currSeconds - tsSeconds;
+  
+    // Adjust for negative differences
+    if (secondDiff < 0) {
+      secondDiff += 60;
+      minuteDiff--;
+    }
+    if (minuteDiff < 0) {
+      minuteDiff += 60;
+      hourDiff--;
+    }
+    if (hourDiff < 0) {
+      hourDiff += 24;
+      dayDiff--;
+    }
+    if (dayDiff < 0) {
+      // Approximate days in month (can be improved with exact month lengths)
+      dayDiff += 30;
+      monthDiff--;
+    }
+    if (monthDiff < 0) {
+      monthDiff += 12;
+      yearDiff--;
+    }
+  
+    // Convert all to total values for comparison
+    const totalMonths = yearDiff * 12 + monthDiff;
+    const totalHours = dayDiff * 24 + hourDiff;
+    const totalMinutes = totalHours * 60 + minuteDiff;
+    const totalSeconds = totalMinutes * 60 + secondDiff;
+  
+    // Determine the most appropriate unit to display
+    if (yearDiff > 0) {
+      return `${yearDiff} year${yearDiff > 1 ? 's' : ''} ago`;
+    } else if (totalMonths > 0) {
+      return `${totalMonths} month${totalMonths > 1 ? 's' : ''} ago`;
+    } else if (dayDiff > 0) {
+      return `${dayDiff} day${dayDiff > 1 ? 's' : ''} ago`;
+    } else if (hourDiff > 0) {
+      return `${hourDiff} hour${hourDiff > 1 ? 's' : ''} ago`;
+    } else if (minuteDiff > 0) {
+      return `${minuteDiff} minute${minuteDiff > 1 ? 's' : ''} ago`;
+    } else {
+      return `${secondDiff} second${secondDiff > 1 ? 's' : ''} ago`;
+    }
   };
+
 
   // Helper function to determine which navigation to use
   const getNavigation = () => {
@@ -178,22 +253,55 @@ const Navbar = () => {
                   <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg overflow-hidden z-50">
                     <div className="py-2">
                       <div className="px-4 py-2 border-b border-gray-200">
-                        <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
+                        <div className="flex justify-between items-center">
+                          <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
+                          {unreadCount > 0 && (
+                            <span className="text-sm text-gray-500">
+                              {unreadCount} unread
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className="max-h-96 overflow-y-auto">
-                        {notifications.slice(0, 5).map((notification) => (
-                          <div
-                            key={notification.id}
-                            className={`px-4 py-3 hover:bg-gray-50 transition-colors duration-200 ${
-                              !notification.read ? 'bg-green-50' : ''
-                            }`}
-                          >
-                            <p className="text-sm text-gray-800">{notification.text}</p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {formatTime(notification.timestamp)}
-                            </p>
+                        {notifications.length > 0 ? (
+                          notifications.slice(0, 5).map((notification) => (
+                            <div
+                              key={notification.notificationID}
+                              className={`px-4 py-3 hover:bg-gray-50 transition-colors duration-200 ${
+                                notification.status === 'unread' ? 'bg-green-50' : ''
+                              }`}
+                            >
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                  <p className="text-sm text-gray-800">{notification.text}</p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {formatTime(notification.timestamp)}
+                                  </p>
+                                </div>
+                                <div className="flex items-center space-x-2 ml-2">
+                                  {notification.status === 'unread' && (
+                                    <button
+                                      onClick={() => handleMarkAsRead(notification.notificationID)}
+                                      className="text-green-600 hover:text-green-800"
+                                    >
+                                      <CheckCircle size={16} />
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => handleDelete(notification.notificationID)}
+                                    className="text-red-600 hover:text-red-800"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="px-4 py-3 text-sm text-gray-500">
+                            No notifications
                           </div>
-                        ))}
+                        )}
                       </div>
                       <div className="px-4 py-2 border-t border-gray-200">
                         <button
