@@ -160,32 +160,7 @@ const ConsumerDashboard = () => {
       </div>
 
       {/* Recent Activity */}
-      <Card className="bg-white p-6 shadow-lg">
-        <h3 className="font-semibold text-lg text-gray-900 mb-4">Recent Activity</h3>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-            <div className="flex items-center space-x-3">
-              <ShoppingBag className="h-5 w-5 text-green-600" />
-              <p className="text-sm text-gray-700">New order received for 50kg Rice</p>
-            </div>
-            <span className="text-xs text-gray-500">2 hours ago</span>
-          </div>
-          <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-            <div className="flex items-center space-x-3">
-              <MessageSquare className="h-5 w-5 text-green-600" />
-              <p className="text-sm text-gray-700">Price negotiation started for Wheat</p>
-            </div>
-            <span className="text-xs text-gray-500">5 hours ago</span>
-          </div>
-          <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-            <div className="flex items-center space-x-3">
-              <AlertTriangle className="h-5 w-5 text-orange-500" />
-              <p className="text-sm text-gray-700">Disease alert: Check tomato plants</p>
-            </div>
-            <span className="text-xs text-gray-500">1 day ago</span>
-          </div>
-        </div>
-      </Card>
+      
     </div>
   );
 };

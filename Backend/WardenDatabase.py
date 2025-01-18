@@ -129,7 +129,25 @@ class WardernDatabase:
         finally:
             cursor.close()
             conn.close()
+    def authenticate_userID(self, identifier):
+        conn = self._get_connection()
+        cursor = conn.cursor()
 
+        try:
+            cursor.execute("""
+                SELECT UserId 
+                FROM Users 
+                WHERE Email = ? OR UserName = ?
+            """, (identifier, identifier))
+            
+            user = cursor.fetchone()
+            
+            if user :
+                return user[0]
+            return None
+        finally:
+            cursor.close()
+            conn.close()
     def get_user_profile_picture(self, user_id):
         conn = self._get_connection()
         cursor = conn.cursor()
@@ -439,7 +457,8 @@ class WardernDatabase:
                     product_data['minimumBulk'],
                     category_id
                 ))
-                
+              
+                self.create_notification(product_data['userId'],"Store",f"{product_data['title']} is now live on the marketplace. Start receiving orders!")
                 conn.commit()
                 return True, "Product created successfully!"
                 
@@ -531,7 +550,7 @@ class WardernDatabase:
                         product_data['hazardLevel']
                     ))
                 
-                # Commit transaction
+                self.create_notification(product_data['userId'],"Store",f"{product_data['title']} is now live on the marketplace. Start receiving orders!")
                 cursor.execute("COMMIT")
                 return True, "Product created successfully!"
                 
@@ -726,6 +745,13 @@ class WardernDatabase:
                 image_base64 = data['image'].split(',')[-1]
                 image_binary = base64.b64decode(image_base64)
             # Update Items table first
+            query = """
+                   SELECT i.salePercentage,i.quantityAvailable
+                   FROM items i
+                   WHERE i.itemID = ?
+                   """
+            cursor.execute(query, (product_id,))
+            result3 = cursor.fetchone()
             cursor.execute("""
                 UPDATE Items 
                 SET itemName = ?,
@@ -744,8 +770,20 @@ class WardernDatabase:
                 data.get('salePercentage', 0),
                 product_id
             ))
-            
-            # Update specific product type table
+            query = """
+                   SELECT i.itemID ,sp.userID 
+                   FROM items i
+                   INNER JOIN saved_products sp ON i.itemID = sp.itemID
+                   WHERE sp.itemID = ?
+                   """
+            cursor.execute(query, (product_id,))
+            result34 = cursor.fetchone()
+            if(int(data.get('salePercentage', 0))>0 and int(data.get('salePercentage', 0))!=int(result3[0])):  
+                 if(result34[1]):
+                  self.create_notification(result34[1],"Tag",f"Price drop alert! {data.get('title')} from your saved products is now {int(data.get('salePercentage', 0))}% off")
+            if(int(data.get('quantityAvailable'))>0 and int(result3[1])==0):   
+                if(result34[1]):
+                 self.create_notification(result34[1],"RefreshCcw",f"Good news! {data.get('title')} is back in stock. Order now before it runs out!")
             product_type = data.get('productType')
             if product_type == 'Machine':
                 cursor.execute("""
@@ -949,7 +987,14 @@ class WardernDatabase:
                 if product_data.get('image'):
                     image_base64 = product_data['image'].split(',')[-1]
                     image_binary = base64.b64decode(image_base64)
-                
+
+                query = """
+                   SELECT i.salePercentage,i.quantityAvailable
+                   FROM items i
+                   WHERE i.itemID = ?
+                   """
+                cursor.execute(query, (product_id,))
+                result3 = cursor.fetchone()
                 # Update Items table
                 cursor.execute("""
                     UPDATE Items 
@@ -969,7 +1014,19 @@ class WardernDatabase:
                     image_binary,
                     product_id
                 ))
-                
+                query = """
+                   SELECT i.itemID ,sp.userID 
+                   FROM items i
+                   INNER JOIN saved_products sp ON i.itemID = sp.itemID
+                   WHERE sp.itemID = ?
+                   """
+                cursor.execute(query, (product_id,))
+                result34 = cursor.fetchone()
+              
+                if(result34):
+                 if(int(product_data['salePercentage'])>0 and int(product_data['salePercentage'])!=int(result3[0])):
+                   self.create_notification(result34[1],"Tag",f"Price drop alert! {product_data['itemName']} from your saved products is now {int(product_data['salePercentage'])}% off")
+
                 # Update Products table
                 cursor.execute("""
                     UPDATE Products
@@ -981,7 +1038,16 @@ class WardernDatabase:
                     category_id,
                     product_id
                 ))
+                if(result34):
+                 if(int(product_data['quantityAvailable'])>0 and int(product_data['quantityAvailable'])>=int(product_data['minimumBulkAmount']) and int(result3[1])==0): 
+                  self.create_notification(result34[1],"RefreshCcw",f"Good news! {product_data['itemName']} is back in stock. Order now before it runs out!")
+                 elif( int(result3[1])<int(product_data['minimumBulkAmount']) and int(product_data['quantityAvailable'])>=int(product_data['minimumBulkAmount'])):   
+                  self.create_notification(result34[1],"RefreshCcw",f"Good news! {product_data['itemName']} is back in stock. Order now before it runs out!")
+                 elif(int(result3[1])>=int(product_data['minimumBulkAmount']) and int(product_data['quantityAvailable'])>=int(product_data['minimumBulkAmount'])): 
+                  self.create_notification(result34[1],"RefreshCcw",f"Good news! {product_data['itemName']} is back in stock. Order now before it runs out!")
                 
+
+
                 conn.commit()
                 return True, "Product updated successfully"
                 
@@ -1424,7 +1490,18 @@ class WardernDatabase:
         """, (user1_id, user2_id, datetime.now()))
         
         conn.commit()
-        
+        cursor.execute("""
+        SELECT 
+            CONCAT(u1.FirstName, ' ', u1.LastName) as user1_full_name,
+            CONCAT(u2.FirstName, ' ', u2.LastName) as user2_full_name
+        FROM Users u1, Users u2
+        WHERE u1.UserId = ? AND u2.UserId = ?
+    """, (user1_id, user2_id))
+    
+        result = cursor.fetchone()
+
+        self.create_notification(user2_id,"MessageSquare",f"You've started your first chat with {result[0]}! Start connecting and enjoy your conversation.")
+        self.create_notification(user1_id,"MessageSquare",f"You've started your first chat with {result[1]}! Start connecting and enjoy your conversation.")
         # Get the new chat ID
         cursor.execute("SELECT @@IDENTITY")
         chat_id = cursor.fetchone()[0]
@@ -1525,8 +1602,10 @@ class WardernDatabase:
                         'userType':row[15]
                     }
                 }
+               
                 products.append(product)
             
+
             return True, products
             
      except Exception as e:
@@ -2423,6 +2502,21 @@ class WardernDatabase:
                 'quantity': int(row[10])
             }
             
+            cursor.execute("""
+              SELECT 
+              CONCAT(u1.FirstName, ' ', u1.LastName) as user1_full_name
+              FROM Users u1
+               WHERE u1.UserId = ? 
+               """, ( row[1],))
+            result = cursor.fetchone()
+            cursor.execute("""
+               SELECT 
+               i. itemName as productName
+               FROM Items i
+               WHERE i.itemID = ? 
+               """, ( row[3],))
+            result2 = cursor.fetchone()
+            self.create_notification(row[2],"Scale",f" New price negotiation request from {result[0]} for {result2[0]}")
             return True, negotiation
             
      except Exception as e:
@@ -2562,7 +2656,24 @@ class WardernDatabase:
                 'originalPrice': float(row[9]),
                 'quantity': row[10]
             }
-            
+            cursor.execute("""
+              SELECT 
+              CONCAT(u1.FirstName, ' ', u1.LastName) as user1_full_name
+              FROM Users u1
+               WHERE u1.UserId = ? 
+               """, ( row[2],))
+            result = cursor.fetchone()
+            cursor.execute("""
+               SELECT 
+               i. itemName as productName
+               FROM Items i
+               WHERE i.itemID = ? 
+               """, ( row[3],))
+            result2 = cursor.fetchone()
+            if(status=='Accepted'):
+              self.create_notification(row[1],"ThumbsUp",f"{result[0]} accepted your price negotiation for {result2[0]}")
+            elif (status=='Rejected'):
+              self.create_notification(row[1],"ThumbsDown",f"{result[0]} declined your price negotiation for {result2[0]}")
             return True, negotiation
             
      except Exception as e:
@@ -2571,10 +2682,7 @@ class WardernDatabase:
     
     # Database function
     def process_order_and_payment(self, user_id, items, payment_details):
-     print("Starting order processing...")
-     print(f"User ID: {user_id}")
-     print(f"Items: {items}")
-     print(f"Payment details: {payment_details}")
+     order_ids=[]
      try:
         with pyodbc.connect(self.conn_str) as conn:
             cursor = conn.cursor()
@@ -2633,7 +2741,7 @@ class WardernDatabase:
                 cursor.execute("SELECT orderID FROM orders WHERE cartID = ? AND ownerID = ?", 
                 (self.get_active_cart_id(cursor, user_id), owner_id))
                 order_id = cursor.fetchone()[0]
-                
+                order_ids.append(order_id)
                 # Update item quantities
                 for item in owner_items:
                     update_quantity_query = """
@@ -2646,7 +2754,33 @@ class WardernDatabase:
                         item['itemId']
                     ))
                     cursor.commit()
-                
+                    cursor.execute("""
+                    SELECT quantityAvailable,itemName 
+                    FROM Items 
+                    WHERE itemID = ?
+                    """, (item['itemId'],))
+                    details_item = cursor.fetchone()
+                    if(int(details_item[0])<=0):
+                      self.create_notification(owner_id,"AlertCircle",f"{details_item[1]} is out of stock. Update inventory to continue receiving orders.")
+                    else:
+                     query = """
+                     SELECT 
+                      p.minimumBulkAmount
+                      FROM Items i
+                     INNER JOIN Products p ON i.itemID = p.productID
+                     WHERE p.productID = ?
+                     """
+                     cursor.execute(query,(item['itemId'],))
+                     result4 = cursor.fetchone()
+                     if result4:
+                      if(int(details_item[0])<int(result4[0])):
+                       self.create_notification(owner_id,"AlertCircle",f"{details_item[1]} stock is below the minimum bulk quantity. Update inventory to continue receiving orders.")
+                   
+
+
+
+
+
                 # Insert finance record
                 finance_query = """
                     INSERT INTO finances (
@@ -2672,7 +2806,15 @@ class WardernDatabase:
                     'financeId': finance_id,
                     'total': total
                 })
-            
+                cursor.execute("""
+                SELECT 
+                CONCAT(u1.FirstName, ' ', u1.LastName) as user1_full_name
+                FROM Users u1
+                WHERE u1.UserId = ? 
+                 """, ( user_id,))
+                result_FullName = cursor.fetchone()
+                self.create_notification(owner_id,"ShoppingBag",f"New order received from {result_FullName[0]}! Order# {order_id}")
+                self.create_notification(user_id,"ShoppingBag",f"New order Placed Successfully! Order# {order_id}")
             # Update current cart status to completed
             update_cart_query = """
                 UPDATE carts
@@ -2692,10 +2834,11 @@ class WardernDatabase:
             cursor.execute(new_cart_query, (user_id,))
             
             conn.commit()
-            
+            result,emailOrders=self.get_email_orders(user_id,order_ids)
             return True, {
                 'orders': created_orders,
-                'message': 'Orders processed successfully'
+                'message': 'Orders processed successfully',
+                'email_orders': emailOrders,
             }
             
      except Exception as e:
@@ -2703,6 +2846,114 @@ class WardernDatabase:
         if 'conn' in locals():
             conn.rollback()  # Rollback on error
         return False, str(e)
+  
+    def get_email_orders(self, user_id, order_ids=None):
+     try:
+        with pyodbc.connect(self.conn_str) as conn:
+            cursor = conn.cursor()
+            
+            # Modified query to include ORDER ID filter
+            query = """
+                WITH LatestAcceptedNegotiation AS (
+                    SELECT 
+                        cartID,
+                        productID,
+                        quantity,
+                        newPrice,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY cartID, productID, quantity
+                            ORDER BY timestamp DESC
+                        ) as rn
+                    FROM price_negotiations
+                    WHERE negotiation_status = 'Accepted'
+                )
+                SELECT 
+                    o.orderID,
+                    o.cartID,
+                    o.totalPrice,
+                    o.ownerID,
+                    o.clientID,
+                    o.orderDate,
+                    o.status,
+                    o.orderStatus,
+                    o.orderDeliverDate,
+                    o.fullName,
+                    o.email,
+                    o.phoneNum,
+                    o.shippingAddress,
+                    ci.itemID,
+                    ci.ownerName,
+                    ci.quantity,
+                    ci.price as originalPrice,
+                    i.itemName,
+                    i.itemImage,
+                    lan.newPrice as negotiatedPrice,
+                    i.ownerID as productOwnerID
+                FROM Orders o
+                INNER JOIN cart_items ci ON o.cartID = ci.cartID
+                INNER JOIN Items i ON ci.itemID = i.itemID
+                LEFT JOIN LatestAcceptedNegotiation lan ON 
+                    lan.cartID = o.cartID 
+                    AND lan.productID = ci.itemID
+                    AND lan.quantity = ci.quantity
+                    AND lan.rn = 1
+                WHERE o.clientID = ?
+                    AND (? IS NULL OR o.orderID IN (SELECT value FROM STRING_SPLIT(?, ',')))
+                ORDER BY o.orderDate DESC
+            """
+            
+            # Convert order_ids list to comma-separated string if provided
+            order_ids_str = ','.join(order_ids) if order_ids else None
+            
+            cursor.execute(query, (user_id, order_ids_str, order_ids_str))
+            rows = cursor.fetchall()
+            
+            if not rows:
+                return False, "No orders found"
+            
+            # Group items by order and match owner
+            orders = {}
+            for row in rows:
+                order_id = row[0]
+                owner_id = row[3]  # Order ownerID
+                product_owner_id = row[20]  # Product ownerID
+                
+                # Only process if the product owner matches the order owner
+                if owner_id == product_owner_id:
+                    if order_id not in orders:
+                        orders[order_id] = {
+                            'orderID': order_id,
+                            'cartID': row[1],
+                            'totalPrice': float(row[2]),
+                            'ownerID': owner_id,
+                            'clientID': row[4],
+                            'orderDate': row[5].isoformat(),
+                            'status': row[6],
+                            'orderStatus': row[7],
+                            'orderDeliverDate': row[8].isoformat() if row[8] else None,
+                            'fullName': row[9],
+                            'email': row[10],
+                            'phoneNum': row[11],
+                            'shippingAddress': row[12],
+                            'items': []
+                        }
+                    
+                    orders[order_id]['items'].append({
+                        'itemId': row[13],
+                        'ownerName': row[14],
+                        'quantity': row[15],
+                        'originalPrice': float(row[16]),
+                        'itemName': row[17],
+                        'itemImage': base64.b64encode(row[18]).decode('utf-8') if row[18] else None,
+                        'negotiatedPrice': float(row[19]) if row[19] else None
+                    })
+            
+            return True, list(orders.values())
+            
+     except Exception as e:
+        print(f"Error in get_user_orders: {str(e)}")
+        return False, str(e)
+   
     def get_owner_id(self, cursor, item_id):
      query = "SELECT ownerID FROM items WHERE itemID = ?"
      cursor.execute(query, (item_id,))
@@ -3025,7 +3276,11 @@ class WardernDatabase:
         try:
             with pyodbc.connect(self.conn_str) as conn:
                 cursor = conn.cursor()
-                
+                fetch_client_query = """
+                 SELECT clientID 
+                 FROM Orders 
+                 WHERE orderID = ? AND ownerID = ?
+                """ 
                 # Verify owner has permission to update this order
                 query = """
                     UPDATE Orders 
@@ -3035,7 +3290,26 @@ class WardernDatabase:
                 
                 cursor.execute(query, (new_status, order_id, owner_id))
                 conn.commit()
-                
+                cursor.execute(fetch_client_query, (order_id, owner_id))
+                result = cursor.fetchone()
+                if result:
+                   client_id = result[0]
+                   if(new_status=='Delivered'):
+                       self.create_notification(client_id,'CheckCircle',f"Your order #{order_id} has been Delivered.")
+                  
+                   elif(new_status=='In_Transit'):
+                       self.create_notification(client_id,'Truck',f"Your order #{order_id} is in Transit.")
+                   
+                   elif(new_status=='Processing'):
+                       self.create_notification(client_id,'Package',f"Your order #{order_id} is currently Processing.")
+                   
+                   elif(new_status=='Pending'):
+                       self.create_notification(client_id,'Clock',f"Your order #{order_id} is Pending.")
+                   
+                   elif(new_status=='Ready_For_Delivery'):
+                       self.create_notification(client_id,'PackageCheck',f"Your order #{order_id} is ready for Delivery.")
+                   
+                   
                 if cursor.rowcount == 0:
                     return False, "Order not found or you don't have permission to update it"
                 

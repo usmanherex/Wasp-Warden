@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, CheckCircle, Clock, AlertCircle, Trash2 } from 'lucide-react';
+import { Bell, CheckCircle, Clock, AlertCircle, Trash2, MessageSquare, PackageCheck, Package, Truck, Scale, ThumbsUp, ThumbsDown, ShoppingBag, FileBarChart, Tag, Store, RefreshCcw, MailWarning } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
@@ -159,22 +159,40 @@ export const NotificationsPage = () => {
 
   const getNotificationIcon = (type) => {
     switch (type) {
-      case 'alert':
-        return <AlertCircle className="text-red-500" size={20} />;
-      case 'order':
-        return <Bell className="text-blue-500" size={20} />;
-      case 'promotion':
-        return <Bell className="text-yellow-500" size={20} />;
-      case 'report':
-        return <Clock className="text-purple-500" size={20} />;
-      case 'message':
-        return <Bell className="text-green-500" size={20} />;
-      case 'system':
-        return <AlertCircle className="text-orange-500" size={20} />;
-      case 'security':
-        return <CheckCircle className="text-blue-500" size={20} />;
+      case 'MessageSquare':
+        return <MessageSquare className="text-blue-600" size={20} />;
+      case 'CheckCircle':
+          return <CheckCircle className="text-green-600" size={20}/>;
+      case 'PackageCheck':
+          return <PackageCheck className="text-blue-600" size={20} />;
+      case 'Package':
+          return <Package className="text-yellow-600" size={20} />;
+      case 'Clock':
+          return <Clock className="text-brown-600" size={20}/>;
+      case 'Truck':
+          return <Truck className="text-red-600" size={20}/>;
+      case 'Scale':
+          return <Scale className="text-yellow-600" size={20}/>;    
+      case 'ThumbsUp':
+            return <ThumbsUp className="text-green-600" size={20}/>;    
+      case 'ThumbsDown':
+          return <ThumbsDown className="text-red-600" size={20}/>;    
+      case 'ShoppingBag':
+            return <ShoppingBag className="text-green-400" size={20}/>;
+      case 'FileBarChart':
+            return <FileBarChart className="text-red-600" size={20}/>; 
+      case 'Tag':
+            return <Tag className="text-brown-600" size={20}/>; 
+      case 'AlertCircle':
+            return <AlertCircle color="#ff6b6b" size={20}/>; 
+      case 'MailWarning':
+            return <MailWarning color="#339af0" size={20}/>; 
+      case 'RefreshCcw':
+            return <RefreshCcw color="#51cf66" size={20}/>; 
+      case 'Store':
+            return <Store color="#845ef7" size={20}/>; 
       default:
-        return <Bell className="text-gray-500" size={20} />;
+        return <Store className="text-gray-500" size={20} />;
     }
   };
 

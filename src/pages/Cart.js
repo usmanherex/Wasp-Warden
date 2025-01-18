@@ -42,7 +42,7 @@ const CartPage = () => {
       if (response.data.success) {
         fetchCartItems();
         toast.success("Item Removed Successfully", {
-          position: "top-right",
+          position: "bottom-center",
           autoClose: 3000,
           hideProgressBar: false,
           closeOnClick: true,
@@ -52,7 +52,7 @@ const CartPage = () => {
       } else {
         setError(response.data.message);
         toast.error("Failed to remove item", {
-          position: "top-right",
+          position: "bottom-center",
           autoClose: 3000,
           hideProgressBar: false,
           closeOnClick: true,
@@ -63,7 +63,7 @@ const CartPage = () => {
     } catch (err) {
       setError(err.message || "Failed to remove item");
       toast.error("Failed to remove item", {
-        position: "top-right",
+        position: "bottom-center",
         autoClose: 3000,
         hideProgressBar: false,
         closeOnClick: true,

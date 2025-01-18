@@ -38,7 +38,7 @@ const Navbar = () => {
     if (token && user) {
       fetchNotifications();
       // Set up polling for notifications
-      const interval = setInterval(fetchNotifications, 30000); // every 30 seconds
+      const interval = setInterval(fetchNotifications, 1000); // every 30 seconds
       return () => clearInterval(interval);
     }
   }, []);

@@ -36,7 +36,7 @@ const NegotiationDialog = ({ product, onClose, user, quantity }) => {
 
       if (data.success) {
         toast.success('Negotiation request submitted successfully!', {
-          position: 'top-right',
+          position: 'bottom-center',
           autoClose: 3000,
           hideProgressBar: false,
           closeOnClick: true,
@@ -46,7 +46,7 @@ const NegotiationDialog = ({ product, onClose, user, quantity }) => {
         onClose();
       } else {
         toast.error(data.message || 'Failed to submit negotiation request', {
-          position: 'top-right',
+          position: 'bottom-center',
           autoClose: 5000,
           hideProgressBar: false,
           closeOnClick: true,
@@ -56,7 +56,7 @@ const NegotiationDialog = ({ product, onClose, user, quantity }) => {
       }
     } catch (error) {
       toast.error('Error submitting negotiation request', {
-        position: 'top-right',
+        position: 'bottom-center',
         autoClose: 5000,
         hideProgressBar: false,
         closeOnClick: true,

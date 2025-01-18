@@ -422,6 +422,7 @@ def send_reset_email(recipient_email, reset_link, user_name):
         server.send_message(message)
         server.quit()
         print("Email sent successfully")
+        db.create_notification(db.authenticate_userID(recipient_email),"MailWarning","A password reset link has been sent to your email address")
         return True
     except Exception as e:
         print(f"Failed to send email. Error: {e}")
@@ -1520,16 +1521,21 @@ def process_payment():
         payment_details = data['customerDetails']
         
         success, result = db.process_order_and_payment(user_id, items, payment_details)
-
+        result2= {
+                'orders': result.get('orders'),
+                'message': result.get('message')
+                
+            }
         if success:
+            send_order_confirmation_email(payment_details['email'],payment_details['name'],result.get('email_orders'))
             return jsonify({
                 'success': True,
-                'data': result
+                'data': result2,
             })
         
         return jsonify({
             'success': False,
-            'message': result
+            'message': result2
         }), 400
 
     except Exception as e:
@@ -1538,6 +1544,345 @@ def process_payment():
             'success': False,
             'message': str(e)
         }), 500
+
+def send_order_confirmation_email(recipient_email, user_name, email_orders):
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+        <head>
+            <style>
+                body {{
+                    font-family: 'Segoe UI', Arial, sans-serif;
+                    max-width: 600px;
+                    margin: 0 auto;
+                    padding: 20px;
+                    color: #333;
+                    line-height: 1.6;
+                    background-color: #f9f9f9;
+                }}
+                .container {{
+                    background-color: #ffffff;
+                    border-radius: 12px;
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                    padding: 30px;
+                    margin: 20px 0;
+                }}
+                .logo {{
+                    text-align: center;
+                    margin-bottom: 35px;
+                    padding: 20px;
+                    background: linear-gradient(to right, #f8f9fa, #ffffff, #f8f9fa);
+                    border-radius: 8px;
+                }}
+                .logo img {{
+                    width: 140px;
+                    height: auto;
+                    transition: transform 0.3s ease;
+                }}
+                .logo img:hover {{
+                    transform: scale(1.05);
+                }}
+                h1 {{
+                    color: #1B8755;
+                    text-align: center;
+                    font-size: 32px;
+                    margin-bottom: 30px;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                }}
+                .success-banner {{
+                    background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+                    border-left: 4px solid #1B8755;
+                    padding: 20px 25px;
+                    margin: 30px 0;
+                    border-radius: 0 8px 8px 0;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                }}
+                .order-section {{
+                    border: 1px solid #e0e0e0;
+                    border-radius: 12px;
+                    padding: 25px;
+                    margin: 30px 0;
+                    box-shadow: 0 3px 6px rgba(0,0,0,0.08);
+                    background-color: #ffffff;
+                }}
+                .order-header {{
+                    background: linear-gradient(to right, #f8f9fa, #ffffff);
+                    padding: 20px 25px;
+                    margin: -25px -25px 25px -25px;
+                    border-radius: 12px 12px 0 0;
+                    border-bottom: 2px solid #e0e0e0;
+                }}
+                .order-header-details {{
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }}
+                .order-id {{
+                    font-size: 18px;
+                    font-weight: 600;
+                    color: #1B8755;
+                }}
+                .order-date {{
+                    color: #666;
+                    font-size: 15px;
+                    font-weight: 500;
+                }}
+                .item-row {{
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 15px 0;
+                    border-bottom: 1px solid #eee;
+                    margin: 0 15px;
+                }}
+                .item-details {{
+                    flex: 1;
+                    padding-right: 20px;
+                }}
+                .item-name {{
+                    font-weight: 600;
+                    color: #2c3e50;
+                    font-size: 16px;
+                    margin-bottom: 5px;
+                }}
+                .item-quantity {{
+                    color: #666;
+                    font-size: 14px;
+                }}
+                .item-price {{
+                    text-align: right;
+                    font-weight: 600;
+                    font-size: 16px;
+                    color: #2c3e50;
+                    min-width: 100px;
+                }}
+                .price-details {{
+                    margin: 25px 15px 0 15px;
+                    padding: 20px;
+                    border-top: 2px solid #eee;
+                    background-color: #f8f9fa;
+                    border-radius: 8px;
+                }}
+                .price-row {{
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 10px 0;
+                    color: #666;
+                }}
+                .price-row span:first-child {{
+                    font-weight: 500;
+                }}
+                .price-row span:last-child {{
+                    min-width: 100px;
+                    text-align: right;
+                }}
+                .total-row {{
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 20px 0 10px 0;
+                    font-weight: 700;
+                    font-size: 20px;
+                    color: #1B8755;
+                    border-top: 2px solid #1B8755;
+                    margin-top: 15px;
+                }}
+                .total-row span:last-child {{
+                    min-width: 100px;
+                    text-align: right;
+                }}
+                .shipping-info {{
+                    background-color: #f8f9fa;
+                    padding: 20px;
+                    border-radius: 8px;
+                    margin: 25px 15px;
+                    border: 1px solid #e0e0e0;
+                }}
+                .shipping-info strong {{
+                    color: #1B8755;
+                    display: block;
+                    margin-bottom: 10px;
+                    font-size: 16px;
+                }}
+                .support-note {{
+                    background: linear-gradient(135deg, #f8f9fa, #ffffff);
+                    padding: 25px;
+                    border-radius: 8px;
+                    margin: 30px 0;
+                    text-align: center;
+                    color: #666;
+                    border: 1px solid #e0e0e0;
+                }}
+                .support-note strong {{
+                    color: #1B8755;
+                    font-size: 18px;
+                    display: block;
+                    margin-bottom: 10px;
+                }}
+                .footer {{
+                    text-align: center;
+                    color: #666;
+                    font-size: 14px;
+                    margin-top: 45px;
+                    padding-top: 25px;
+                    border-top: 2px solid #eee;
+                }}
+                .footer p {{
+                    margin: 8px 0;
+                }}
+                .copyright {{
+                    color: #999;
+                    font-size: 13px;
+                    margin-top: 15px;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="logo">
+                    <a href="https://imgbb.com/"><img src="https://i.ibb.co/gvNCKYj/wasp.png" alt="wasp" border="0"></a>
+                </div>
+                <h1>Order Confirmation</h1>
+                <p>Dear {user_name},</p>
+                <div class="success-banner">
+                    <strong>Thank you for your order!</strong> Your order has been successfully placed and payment has been processed.
+                </div>
+    """
+    
+    # Add order sections for each order in email_orders
+    for order in email_orders:
+        formatted_date = datetime.fromisoformat(order['orderDate']).strftime('%B %d, %Y')
+        
+        html_content += f"""
+            <div class="order-section">
+                <div class="order-header">
+                    <div class="order-header-details">
+                        <span class="order-id">Order #{order['orderID']}</span>
+                    
+                    </div>
+                </div>
+        """
+        
+        # Add items for this order
+        for item in order['items']:
+            price = item['negotiatedPrice'] if item['negotiatedPrice'] else item['originalPrice']
+            total_item_price = price * item['quantity']
+            
+            html_content += f"""
+                <div class="item-row">
+                    <div class="item-details">
+                        <div class="item-name">{item['itemName']}</div>
+                        <div class="item-quantity">Quantity: {item['quantity']}</div>
+                    </div>
+                    <div class="item-price">${total_item_price:.2f}</div>
+                </div>
+            """
+        
+        # Add price details
+        subtotal = order['totalPrice'] / 1.05  # Assuming 5% tax
+        tax = order['totalPrice'] - subtotal
+        
+        html_content += f"""
+                <div class="price-details">
+                    <div class="price-row">
+                        <span>Subtotal</span>
+                         <span> </span>
+                        <span> ${subtotal:.2f}</span>
+                    </div>
+                    <div class="price-row">
+                        <span>Tax (5%)</span>
+                        <span> </span>
+                        <span> ${tax:.2f}</span>
+                    </div>
+                    <div class="total-row">
+                        <span>Total</span>
+                         <span> </span>
+                        <span> ${order['totalPrice']:.2f}</span>
+                    </div>
+                </div>
+                
+                <div class="shipping-info">
+                    <strong>Shipping Information</strong>
+                    {order['fullName']}<br>
+                    {order['shippingAddress']}<br>
+                    Phone: {order['phoneNum']}<br>
+                    Email: {order['email']}
+                </div>
+            </div>
+        """
+
+    # Add support note and footer
+    html_content += f"""
+                <div class="support-note">
+                    <strong>Need Help?</strong>
+                    Our customer support team is here to assist you. Feel free to contact us with any questions about your order.
+                </div>
+                
+                <div class="footer">
+                    <p>Thank you for shopping with WaspWarden!</p>
+                    <p>Best regards,<br>
+                    The WaspWarden Team</p>
+                    <p class="copyright">© 2024 WaspWarden. All rights reserved.</p>
+                </div>
+            </div>
+        </body>
+    </html>
+    """
+
+    text_content = f"""
+    Order Confirmation
+    
+    Dear {user_name},
+    
+    Thank you for your order! Your order has been successfully placed and payment has been processed.
+    
+    Order Details:
+    """
+    
+    for order in email_orders:
+        formatted_date = datetime.fromisoformat(order['orderDate']).strftime('%B %d, %Y')
+        text_content += f"\nOrder #{order['orderID']} - Ordered on {formatted_date}\n"
+        
+        for item in order['items']:
+            price = item['negotiatedPrice'] if item['negotiatedPrice'] else item['originalPrice']
+            text_content += f"{item['itemName']} × {item['quantity']}: ${price * item['quantity']:.2f}\n"
+        
+        text_content += f"\nTotal: ${order['totalPrice']:.2f}\n"
+        text_content += f"\nShipping to:\n{order['fullName']}\n{order['shippingAddress']}\n"
+
+    # Email sending configuration
+    smtp_server = 'smtp.gmail.com'
+    smtp_port = 587
+    smtp_user = 'waspwardenproject@gmail.com'
+    smtp_password = 'deif snid bkuv wbon'
+    from_email = 'waspwardenproject@gmail.com'
+    
+    message = MIMEMultipart('alternative')
+    message['From'] = from_email
+    message['To'] = recipient_email
+    message['Subject'] = 'Order Confirmation - WaspWarden'
+    message['Date'] = formatdate(localtime=True)
+
+    text_part = MIMEText(text_content, 'plain')
+    html_part = MIMEText(html_content, 'html')
+
+    message.attach(text_part)
+    message.attach(html_part)
+
+    try:
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(smtp_user, smtp_password)
+        server.send_message(message)
+        server.quit()
+        print("Order confirmation email sent successfully")
+        return True
+    except Exception as e:
+        print(f"Failed to send order confirmation email. Error: {e}")
+        return False
 
 @app.route('/api/orders/<int:user_id>', methods=['GET'])
 def get_user_orders(user_id):
@@ -1677,14 +2022,15 @@ def delete_notification_route(notification_id, user_id):
 @app.route('/api/notifications', methods=['POST'])
 def create_notification_route():
         data = request.get_json()
-        required_fields = ['user_id', 'type', 'text']
+        required_fields = ['userId', 'notificationType', 'text']
+        
         
         if not all(field in data for field in required_fields):
             return {"error": "Missing required fields"}, HTTPStatus.BAD_REQUEST
             
         return db.create_notification(
-            data['user_id'],
-            data['type'],
+            data['userId'],
+            data['notificationType'],
             data['text']
         )
 

@@ -149,7 +149,7 @@ const ReviewsTab = ({
       }
     } catch (error) {
       toast.error("Failed to load reviews", {
-        position: "top-right",
+        position: "bottom-center",
         autoClose: 3000,
         hideProgressBar: false,
         closeOnClick: true,
@@ -181,7 +181,7 @@ const ReviewsTab = ({
       const data = await response.json();
       if (data.success) {
         toast.success("Review submitted successfully", {
-          position: "top-right",
+          position: "bottom-center",
           autoClose: 3000,
           hideProgressBar: false,
           closeOnClick: true,
@@ -192,7 +192,7 @@ const ReviewsTab = ({
       }
     } catch (error) {
       toast.error("Failed to submit review", {
-        position: "top-right",
+        position: "bottom-center",
         autoClose: 3000,
         hideProgressBar: false,
         closeOnClick: true,
@@ -222,7 +222,7 @@ const ReviewsTab = ({
       const data = await response.json();
       if (data.success) {
         toast.success("Review updated successfully", {
-          position: "top-right",
+          position: "bottom-center",
           autoClose: 3000,
           hideProgressBar: false,
           closeOnClick: true,
@@ -233,7 +233,7 @@ const ReviewsTab = ({
       }
     } catch (error) {
       toast.error("Failed to update review", {
-        position: "top-right",
+        position: "bottom-center",
         autoClose: 3000,
         hideProgressBar: false,
         closeOnClick: true,
@@ -261,7 +261,7 @@ const ReviewsTab = ({
       const data = await response.json();
       if (data.success) {
         toast.success("Review Deleted successfully", {
-          position: "top-right",
+          position: "bottom-center",
           autoClose: 3000,
           hideProgressBar: false,
           closeOnClick: true,
@@ -274,7 +274,7 @@ const ReviewsTab = ({
       }
     } catch (error) {
       toast.error("Failed to delete review", {
-        position: "top-right",
+        position: "bottom-center",
         autoClose: 3000,
         hideProgressBar: false,
         closeOnClick: true,
@@ -345,7 +345,7 @@ const ReviewsTab = ({
         }));
 
         toast.success("Reaction updated successfully", {
-          position: "top-right",
+          position: "bottom-center",
           autoClose: 3000,
           hideProgressBar: false,
           closeOnClick: true,
@@ -355,7 +355,7 @@ const ReviewsTab = ({
       }
     } catch (error) {
       toast.error("Failed to update reaction", {
-        position: "top-right",
+        position: "bottom-center",
         autoClose: 3000,
         hideProgressBar: false,
         closeOnClick: true,
@@ -701,7 +701,7 @@ const ProductPopup = ({ product, onClose, onProductUpdate }) => {
 
       if (data.success) {
         toast.success("Item added to cart successfully", {
-          position: "top-right",
+          position: "bottom-center",
           autoClose: 3000,
           hideProgressBar: false,
           closeOnClick: true,
@@ -712,7 +712,7 @@ const ProductPopup = ({ product, onClose, onProductUpdate }) => {
       } else {
         // Handle the error message from the database
         toast.error(data.error || "Failed to add item to cart", {
-          position: "top-right",
+          position: "bottom-center",
           autoClose: 5000,
           hideProgressBar: false,
           closeOnClick: true,
@@ -723,7 +723,7 @@ const ProductPopup = ({ product, onClose, onProductUpdate }) => {
     } catch (error) {
       // Handle network or other errors
       toast.error(error.message || "Failed to add item to cart", {
-        position: "top-right",
+        position: "bottom-center",
         autoClose: 5000,
         hideProgressBar: false,
         closeOnClick: true,
@@ -1162,7 +1162,7 @@ const FarmMarketplace = () => {
           toast.success(
             "Product Removed from Saved Products List Successfully",
             {
-              position: "top-right",
+              position: "bottom-center",
               autoClose: 3000,
               hideProgressBar: false,
               closeOnClick: true,
@@ -1175,7 +1175,7 @@ const FarmMarketplace = () => {
           toast.error(
             "Failed to remove the Product from Saved Products List ",
             {
-              position: "top-right",
+              position: "bottom-center",
               autoClose: 3000,
               hideProgressBar: false,
               closeOnClick: true,
@@ -1205,7 +1205,7 @@ const FarmMarketplace = () => {
             return newSet;
           });
           toast.success("Product Added to Saved Products List Successfully", {
-            position: "top-right",
+            position: "bottom-center",
             autoClose: 3000,
             hideProgressBar: false,
             closeOnClick: true,
@@ -1215,7 +1215,7 @@ const FarmMarketplace = () => {
         } else {
           console.error("Failed to save product:", data.message);
           toast.error("Unable to add the product to Saved Products List", {
-            position: "top-right",
+            position: "bottom-center",
             autoClose: 3000,
             hideProgressBar: false,
             closeOnClick: true,
@@ -1227,7 +1227,7 @@ const FarmMarketplace = () => {
     } catch (err) {
       console.error("Error toggling saved product:", err);
       toast.error("Unable to add product to Saved Products List", {
-        position: "top-right",
+        position: "bottom-center",
         autoClose: 3000,
         hideProgressBar: false,
         closeOnClick: true,

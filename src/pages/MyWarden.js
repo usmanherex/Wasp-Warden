@@ -6,7 +6,9 @@ import { Alert, AlertDescription } from '../components/ui/Alert';
 import plantDiseaseImg from '../assets/images/plant-disease.jpg';
 import pestDetectionImg from '../assets/images/pest_disease.jpg';
 import maizeDiseaseImg from '../assets/images/maize_disease.jpg';
+import axios from 'axios';
 
+const API_BASE_URL = 'http://localhost:5000/api';
 // MyWarden component
 const MyWarden = () => {
   const features = [
@@ -138,7 +140,18 @@ const DetectionPage = ({ title, description, icon: Icon, type }) => {
   const [error, setError] = useState(null);
   const [loadingMessage, setLoadingMessage] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-
+  
+  const sendNotificationToBackend = async (notification) => {
+    console.log(notification);
+    try {
+      const response = await axios.post(`${API_BASE_URL}/notifications`, notification);
+      console.log(`✅ Successfully created notification: ${notification.text}`);
+      return response.data;
+    } catch (error) {
+      console.error(`❌ Failed to create notification: ${error.message}`);
+      throw error;
+    }
+  };
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
   
@@ -233,7 +246,20 @@ const DetectionPage = ({ title, description, icon: Icon, type }) => {
       if (!saveResponse.ok) {
         throw new Error('Failed to save report to database');
       }
-
+      const notificationType= "FileBarChart";
+      const text= `Your AI ${
+        type === 'pest'
+            ? 'Pest'
+            : type === 'maize'
+            ? 'Maize'
+            : 'Plant Disease'
+    } analysis report is ready to view`;
+      await sendNotificationToBackend({
+        userId: user.userId,
+        notificationType,
+       text
+        
+    });
       clearInterval(messageInterval);
       setShowSuccessModal(true);
 

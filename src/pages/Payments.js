@@ -178,14 +178,26 @@ const CheckoutForm = () => {
 
       showSuccessAlert();
       toast.success('Order processed successfully!', {
-        position: "top-right",
-        autoClose: 5000
+        
+        position: "bottom-center",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        theme:"dark"
       });
 
     } catch (err) {
       toast.error(err.message || 'Payment failed. Please try again.', {
-        position: "top-right",
-        autoClose: 5000
+        
+        position: "bottom-center",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        theme:"dark"
       });
     } finally {
       setLoading(false);
