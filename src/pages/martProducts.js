@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1082,18 +1082,23 @@ const SearchBar = ({ searchQuery, onSearchChange }) => (
     </button>
   </div>
 );
-const FarmMarketplace = () => {
+const MartProducts = () => {
   const [products, setProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [savedProducts, setSavedProducts] = useState(new Set());
   const [user, setUser] = useState(JSON.parse(localStorage.getItem("user")));
+  const { state } = useLocation();
+  const productsuserId = state?.userId;
 
   useEffect(() => {
     const fetchProducts = async () => {
+      const baseUrl = "http://localhost:5000/farmer/products";
+      const url =  `${baseUrl}?userId=${productsuserId}` ;
+     
       try {
-        const response = await fetch("http://localhost:5000/farmer/products");
+        const response = await fetch(url);
         const data = await response.json();
         if (data.success) {
           setProducts(data.products);
@@ -1110,8 +1115,10 @@ const FarmMarketplace = () => {
   }, []);
 
   const fetchProducts = async () => {
+    const baseUrl = "http://localhost:5000/farmer/products";
+    const url = `${baseUrl}?userId=${productsuserId}` ;
     try {
-      const response = await fetch("http://localhost:5000/farmer/products");
+      const response = await fetch(url);
       const data = await response.json();
       if (data.success) {
         setProducts(data.products);
@@ -1363,4 +1370,4 @@ const FarmMarketplace = () => {
   );
 };
 
-export default FarmMarketplace;
+export default MartProducts;

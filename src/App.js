@@ -36,6 +36,8 @@ import ConsumerNegotiationsPage from './pages/ConsumerNegotiations';
 import PaymentPage from './pages/Payments';
 import FinanceDashboard from './pages/FinanceDashboard';
 import { NotificationsPage } from './pages/Notifications';
+import MartProducts from './pages/martProducts';
+import MarketplaceProducts from './pages/marketplaceproducts';
 
 const AppContent = () => {
   const location = useLocation();
@@ -75,6 +77,8 @@ const showNavbar = !['/login', '/signup','/forgot-password', '/reset-password'].
         <Route path="/contact" element={<ContactForm />} />
         <Route path="/mart" element={<FarmMarketplace />} />
         <Route path="/marketplace" element={<AgriEquipmentMarketplace />} />
+        <Route path="/farmerproducts-mart" element={<MartProducts/>} />
+        <Route path="/agribusiness-marketplace" element={<MarketplaceProducts />} />
         <Route path="/my-warden" element={<MyWarden />} />
         <Route path="/iot-dashboard" element={<IoTDashboard />} />
         <Route path="/plant-disease-detection" element={<PlantDiseaseDetection />} />

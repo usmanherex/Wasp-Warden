@@ -958,7 +958,8 @@ def check_existing_chat(user1_id, user2_id):
 
 @app.route('/farmer/products', methods=['GET'])
 def get_all_products():
-    success, result = db.get_all_products()
+    user_id = request.args.get('userId')  # Get userId from query parameters
+    success, result = db.get_all_products(user_id)
     if success:
         return jsonify({
             'success': True,
@@ -971,8 +972,9 @@ def get_all_products():
 
 @app.route('/agribusiness/products', methods=['GET'])
 def get_all_agribusinessproducts():
+    user_id = request.args.get('userId')  # Get userId from query parameters
     try:
-        success, result = db.get_all_agribusiness_products()
+        success, result = db.get_all_agribusiness_products(user_id)
         
         if success:
             return jsonify({

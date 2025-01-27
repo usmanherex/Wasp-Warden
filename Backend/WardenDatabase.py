@@ -1546,13 +1546,14 @@ class WardernDatabase:
         cursor.close()
         conn.close()
     
-    def get_all_products(self):
-    
+    def get_all_products(self,userId):
+     
      try:
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            
-            query = """
+            query=None
+            if(userId):
+             query = """
                 SELECT 
                     i.itemID,
                     i.itemName,
@@ -1569,15 +1570,45 @@ class WardernDatabase:
                     u.FirstName,
                     u.LastName,
                     u.UserName,
-                    u.UserType
+                    u.UserType,
+                    u.Email,
+                    u.PhoneNumber
+                FROM Items i
+                JOIN Products p ON i.itemID = p.productID
+                JOIN Categories c ON p.categoryID = c.categoryID
+                JOIN Users u ON i.ownerID = u.UserId
+                WHERE i.ownerID = ?
+                ORDER BY i.itemCreationDate DESC
+             """
+             cursor.execute(query,(userId,))
+            else:
+                query = """
+                SELECT 
+                    i.itemID,
+                    i.itemName,
+                    i.itemPrice,
+                    i.itemRating,
+                    i.itemDescription,
+                    i.quantityAvailable,
+                    i.itemImage,
+                    i.ownerID,
+                    i.salePercentage,
+                    p.minimumBulkAmount,
+                    c.categoryName,
+                    c.metricSystem,
+                    u.FirstName,
+                    u.LastName,
+                    u.UserName,
+                    u.UserType,
+                    u.Email,
+                    u.PhoneNumber
                 FROM Items i
                 JOIN Products p ON i.itemID = p.productID
                 JOIN Categories c ON p.categoryID = c.categoryID
                 JOIN Users u ON i.ownerID = u.UserId
                 ORDER BY i.itemCreationDate DESC
-            """
-            
-            cursor.execute(query)
+             """
+                cursor.execute(query)
             rows = cursor.fetchall()
             
             products = []
@@ -1599,7 +1630,9 @@ class WardernDatabase:
                         'firstName': row[12],
                         'lastName': row[13],
                         'userName': row[14],
-                        'userType':row[15]
+                        'userType':row[15],
+                        'email':row[16],
+                        'phoneNumber':row[17]
                     }
                 }
                
@@ -1612,13 +1645,14 @@ class WardernDatabase:
         print(f"Error fetching all products: {str(e)}")
         return False, str(e)
      
-    def get_all_agribusiness_products(self):
+    def get_all_agribusiness_products(self,userId):
      try:
         with pyodbc.connect(self.conn_str) as conn:
             cursor = conn.cursor()
-            
-            # Get all products with business and owner information
-            machines_query = """
+            machines_query=None
+            chemicals_query=None
+            if(userId):
+             machines_query = """
                 SELECT 
                     i.itemID,
                     i.ownerID,
@@ -1643,9 +1677,10 @@ class WardernDatabase:
                 INNER JOIN Machines m ON i.itemID = m.machineID
                 INNER JOIN AgriBusiness ab ON i.ownerID = ab.UserId
                 INNER JOIN Users u ON ab.UserId = u.UserId
-            """
+                WHERE i.ownerID = ?
+             """
             
-            chemicals_query = """
+             chemicals_query = """
                 SELECT 
                     i.itemID,
                     i.ownerID,
@@ -1671,10 +1706,70 @@ class WardernDatabase:
                 INNER JOIN Chemicals c ON i.itemID = c.chemicalID
                 INNER JOIN AgriBusiness ab ON i.ownerID = ab.UserId
                 INNER JOIN Users u ON ab.UserId = u.UserId
-            """
+                WHERE i.ownerID = ?
+              """
+            else:
+            # Get all products with business and owner information
+             machines_query = """
+                SELECT 
+                    i.itemID,
+                    i.ownerID,
+                    i.itemName,
+                    i.itemPrice,
+                    i.itemDescription,
+                    i.quantityAvailable,
+                    i.itemImage,
+                    i.itemRating,
+                    i.salePercentage,
+                    m.machineType,
+                    m.machineWeight,
+                    m.powerSource,
+                    m.warranty,
+                    ab.AgriBusinessName,
+                    ab.BusinessType,
+                    u.FirstName,
+                    u.LastName,
+                    u.Email,
+                    u.PhoneNumber
+                FROM Items i
+                INNER JOIN Machines m ON i.itemID = m.machineID
+                INNER JOIN AgriBusiness ab ON i.ownerID = ab.UserId
+                INNER JOIN Users u ON ab.UserId = u.UserId
+             """
             
+             chemicals_query = """
+                SELECT 
+                    i.itemID,
+                    i.ownerID,
+                    i.itemName,
+                    i.itemPrice,
+                    i.itemDescription,
+                    i.quantityAvailable,
+                    i.itemImage,
+                    i.itemRating,
+                    i.salePercentage,
+                    c.metricSystem,
+                    c.quantity,
+                    c.chemicalType,
+                    c.expiryDate,
+                    c.hazardLevel,
+                    ab.AgriBusinessName,
+                    ab.BusinessType,
+                    u.FirstName,
+                    u.LastName,
+                    u.Email,
+                    u.PhoneNumber
+                FROM Items i
+                INNER JOIN Chemicals c ON i.itemID = c.chemicalID
+                INNER JOIN AgriBusiness ab ON i.ownerID = ab.UserId
+                INNER JOIN Users u ON ab.UserId = u.UserId
+             """
+            if(userId):
+             cursor.execute(machines_query,(userId,))
+            else:
+             cursor.execute(machines_query)
             # Get machines
-            cursor.execute(machines_query)
+            
             machines = []
             for row in cursor.fetchall():
                 machine = {
@@ -1702,8 +1797,11 @@ class WardernDatabase:
                 }
                 machines.append(machine)
             
-            # Get chemicals
-            cursor.execute(chemicals_query)
+            if(userId):
+             cursor.execute(chemicals_query,(userId,))
+            else:
+             cursor.execute(chemicals_query)
+            
             chemicals = []
             for row in cursor.fetchall():
                 chemical = {

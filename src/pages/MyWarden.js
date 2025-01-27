@@ -163,11 +163,11 @@ const DetectionPage = ({ title, description, icon: Icon, type }) => {
 
   let apiURL;
   if (type === 'pest') {
-    apiURL = 'http://127.0.0.1:5001/predict';
+    apiURL = 'http://127.0.0.1:5001/predict/pest';
   } else if (type === 'maize') {
-    apiURL = 'http://127.0.0.1:5002/predict';
+    apiURL = 'http://127.0.0.1:5001/predict/maize';
   } else if (type === 'plant') {
-    apiURL = 'http://127.0.0.1:5003/predict';
+    apiURL = 'http://127.0.0.1:5001/predict/plant';
   }
 
   const processResults = async () => {

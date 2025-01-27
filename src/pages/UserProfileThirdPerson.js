@@ -13,7 +13,8 @@ import {
   Building,
   Tag,
   FileText,
-  HashIcon,Building2,Users
+  HashIcon,Building2,Users,
+  Store
 } from "lucide-react";
 import {
   Card,
@@ -112,7 +113,13 @@ const UserProfile = () => {
   const specializations = profile.specialization
     ? profile.specialization.split(",").map((s) => s.trim())
     : [];
-
+    const handleNavigate = () => {
+      if (profile.userType === 'Farmer') {
+        navigate('/farmerproducts-mart', { state: { userId: userId } });
+      } else if (profile.userType === 'Agri-business') {
+        navigate('/agribusiness-marketplace', { state: { userId: userId } });
+      }
+    };
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-white">
       <div className="h-80 w-full relative overflow-hidden">
@@ -166,14 +173,26 @@ const UserProfile = () => {
                 )}
               </div>
             {parseInt(userId) !== parseInt(loggedInId) && (
+   <div className="flex space-x-4">
    <button 
-   onClick={handleStartChat}
+     onClick={handleStartChat}
+     className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg flex items-center transition-all duration-300 shadow-lg hover:shadow-xl"
+   >
+     <MessageSquare className="w-5 h-5 mr-2" />
+     Send Message
+   </button>
+{ profile.userType!=='Consumer' &&(
+   <button 
+   onClick={handleNavigate}
    className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg flex items-center transition-all duration-300 shadow-lg hover:shadow-xl"
  >
-   <MessageSquare className="w-5 h-5 mr-2" />
-   Send Message
+   <Store className="w-5 h-5 mr-2" />
+   View Products
  </button>
-            )}
+)}
+
+
+ </div>   )}
            
             </div>
           </div>

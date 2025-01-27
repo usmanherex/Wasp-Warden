@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate,useLocation } from "react-router-dom";
 import {
   Search,
   Star,
@@ -1215,7 +1215,7 @@ const ReviewsTab = ({
     </div>
   );
 };
-const AgriEquipmentMarketplace = () => {
+const MarketplaceProducts = () => {
   const [products, setProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -1231,7 +1231,10 @@ const AgriEquipmentMarketplace = () => {
     metricSystem: "",
     hazardLevel: "",
   });
-
+  const { state } = useLocation();
+  const productsuserId = state?.userId;
+  const baseUrl = "http://localhost:5000/agribusiness/products";
+  const url =  `${baseUrl}?userId=${productsuserId}` ;
   const [user, setUser] = useState(JSON.parse(localStorage.getItem("user")));
 
   useEffect(() => {
@@ -1262,7 +1265,7 @@ const AgriEquipmentMarketplace = () => {
     try {
       setLoading(true);
       const response = await fetch(
-        "http://localhost:5000/agribusiness/products"
+        url
       );
       const data = await response.json();
       if (data.success) {
@@ -1717,4 +1720,4 @@ const AgriEquipmentMarketplace = () => {
   );
 };
 
-export default AgriEquipmentMarketplace;
+export default MarketplaceProducts;

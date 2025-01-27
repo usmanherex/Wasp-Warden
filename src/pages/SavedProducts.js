@@ -989,24 +989,47 @@ const ProductPopup = ({ product, onClose, onProductUpdate }) => {
                   />
                 ) : activeTab === "seller" ? (
                   <div className="space-y-6">
-                    <div className="bg-gray-50 rounded-xl p-6">
-                      <div className="flex items-center space-x-4 mb-4">
+                  <div className="bg-gray-50 rounded-xl p-6">
+                    <div className="flex flex-col space-y-6">
+                      {/* Header with avatar and name */}
+                      <div className="flex items-center space-x-4">
                         <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
                           <span className="text-2xl font-bold text-green-600">
                             {product.ownerDetails.firstName?.charAt(0)}
                           </span>
                         </div>
                         <div>
-                          <h3 className="text-xl font-bold text-gray-800">
-                            {product.ownerDetails.firstName &&
-                              product.ownerDetails.firstName}{" "}
-                            {product.ownerDetails.lastName &&
-                              product.ownerDetails.lastName}
+                          <h3 
+                            onClick={() => navigate(`/user-profile/${product.ownerId}`)}
+                            className="text-xl font-bold text-gray-800 hover:text-green-600 transition-colors duration-200 cursor-pointer underline-offset-2 hover:underline"
+                          >
+                            {product.ownerDetails.firstName} {product.ownerDetails.lastName}
                           </h3>
+                          <p className="text-gray-600">
+                            {product.ownerDetails?.userType}
+                          </p>
                         </div>
+                      </div>
+                
+                      {/* Contact Information */}
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-gray-700">
+                          Contact Information
+                        </h4>
+                        <p className="text-gray-600">
+                          <span className="font-medium">Email:</span>
+                          <br />
+                          {product.ownerDetails?.email}
+                        </p>
+                        <p className="text-gray-600">
+                          <span className="font-medium">Phone:</span>
+                          <br />
+                          {product.ownerDetails?.phoneNumber}
+                        </p>
                       </div>
                     </div>
                   </div>
+                </div>
                 ) : (
                   <p>Invalid Tab</p>
                 )}
@@ -1553,7 +1576,10 @@ const MarketplaceProductPopup = ({ product, onClose, onProductUpdate }) => {
                           </span>
                         </div>
                         <div>
-                          <h3 className="text-xl font-bold text-gray-800">
+                        <h3 
+                onClick={() => navigate(`/user-profile/${product.ownerId}`)}
+                className="text-xl font-bold text-gray-800 hover:text-green-600 transition-colors duration-200 cursor-pointer underline-offset-2 hover:underline"
+              >
                             {product.businessInfo?.agriBusinessName}
                           </h3>
                           <p className="text-gray-600">
