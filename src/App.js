@@ -44,6 +44,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import FAQSection from './pages/FAQ';
 import IoTIntegrationPage from './pages/IoTIntegration';
 import BlogLayout from './pages/Blog';
+import Article from './pages/Article';
 
 const AppContent = () => {
   const location = useLocation();
@@ -116,6 +117,7 @@ const showNavbar = !['/login', '/signup','/forgot-password', '/reset-password'].
         <Route path="/stripe-payment" element={<PaymentPage />} />
         <Route path="/blog" element={<BlogLayout />} />
         <Route path="/finances" element={<FinanceDashboard />} />
+        <Route path="/article" element={<Article/>} />
       </Routes>
 
       {showFooter && <Footer />}

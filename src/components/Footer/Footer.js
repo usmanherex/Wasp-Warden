@@ -21,7 +21,7 @@ export default () => {
         { name: 'Farm Blog', href: '/blog' },
         { name: 'Pest Control Guide', href: '/guide' },
         { name: 'FAQ', href: '/faq' },
-        { name: 'Events', href: '/events' },
+        { name: 'Blog', href: '/blog' },
       ],
     },
     {
