@@ -9,8 +9,8 @@ export default () => {
     {
       label: 'Our Farm',
       items: [
-        { name: 'About Us', href: '/about' },
-        { name: 'Our Products', href: '/products' },
+        { name: 'About Us', href: '/about-us' },
+        { name: 'Terms & Conditions', href: '/terms-conditions' },
         { name: 'Sustainability', href: '/sustainability' },
         { name: 'Farm Tours', href: '/tours' },
       ],
@@ -30,7 +30,7 @@ export default () => {
         { name: 'Contact Us', href: '/contact' },
         { name: 'Shipping Info', href: '/shipping' },
         { name: 'Returns Policy', href: '/returns' },
-        { name: 'Privacy Policy', href: '/privacy' },
+        { name: 'Privacy Policy', href: '/privacy-policy' },
       ],
     },
   ];

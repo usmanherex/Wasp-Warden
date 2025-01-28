@@ -2036,5 +2036,20 @@ def create_notification_route():
             data['text']
         )
 
+@app.route('/api/iot-request', methods=['POST'])
+def create_iot_request():
+    data = request.get_json()
+    required_fields = ['userId', 'farmSize', 'cropType', 'sensorPreference', 
+                      'budget', 'phoneNumber', 'location', 'preferredContactTime']
+    
+    if not all(field in data for field in required_fields):
+        return {"error": "Missing required fields"}, HTTPStatus.BAD_REQUEST
+        
+    return db.create_iot_request(data)
+
+@app.route('/api/iot-request/<user_id>', methods=['GET'])
+def get_user_request(user_id):
+    return db.get_user_request(user_id)
+
 if __name__ == '__main__':
     socketio.run(app, debug=True)

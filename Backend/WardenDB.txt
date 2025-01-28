@@ -391,3 +391,22 @@ CREATE TABLE notifications (
     status VARCHAR(20) NOT NULL,
     type VARCHAR(50) NOT NULL,
    );
+
+  -- Create table for IoT integration requests
+CREATE TABLE iot_integration_requests (
+    request_id INT PRIMARY KEY IDENTITY(1,1),
+    user_id INT NOT NULL,
+    farm_size FLOAT,
+    crop_type VARCHAR(100),
+    sensor_preference VARCHAR(100),
+    budget_range VARCHAR(100),
+    phone_number VARCHAR(20),
+    location VARCHAR(255),
+    preferred_contact_time VARCHAR(100),
+    status VARCHAR(50) DEFAULT 'pending',
+    created_at DATETIME DEFAULT GETDATE(),
+    updated_at DATETIME DEFAULT GETDATE(),
+    notes TEXT,
+    assigned_to VARCHAR(100),
+    estimated_completion_date DATE
+);

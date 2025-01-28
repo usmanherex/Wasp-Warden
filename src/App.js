@@ -38,6 +38,12 @@ import FinanceDashboard from './pages/FinanceDashboard';
 import { NotificationsPage } from './pages/Notifications';
 import MartProducts from './pages/martProducts';
 import MarketplaceProducts from './pages/marketplaceproducts';
+import AboutUs from './pages/About-us';
+import TermsAndConditions from './pages/TermsAndConditions';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import FAQSection from './pages/FAQ';
+import IoTIntegrationPage from './pages/IoTIntegration';
+import BlogLayout from './pages/Blog';
 
 const AppContent = () => {
   const location = useLocation();
@@ -68,6 +74,10 @@ const showNavbar = !['/login', '/signup','/forgot-password', '/reset-password'].
       
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/about-us" element={<AboutUs />} />
+        <Route path="/terms-conditions" element={<TermsAndConditions />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/faq" element={<FAQSection />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/home" element={<HomePage />} />
@@ -80,7 +90,7 @@ const showNavbar = !['/login', '/signup','/forgot-password', '/reset-password'].
         <Route path="/farmerproducts-mart" element={<MartProducts/>} />
         <Route path="/agribusiness-marketplace" element={<MarketplaceProducts />} />
         <Route path="/my-warden" element={<MyWarden />} />
-        <Route path="/iot-dashboard" element={<IoTDashboard />} />
+        <Route path="/iot-dashboard" element={<IoTIntegrationPage />} />
         <Route path="/plant-disease-detection" element={<PlantDiseaseDetection />} />
         <Route path="/pest-detection" element={<PestDetection />} />
         <Route path="/maize-disease-detection" element={<MaizeDiseaseDetection />} />
@@ -104,6 +114,7 @@ const showNavbar = !['/login', '/signup','/forgot-password', '/reset-password'].
         <Route path="/consumer-dashboard" element={<ConsumerDashboard />} />
         <Route path="/consumer-negotiations" element={<ConsumerNegotiationsPage />} />
         <Route path="/stripe-payment" element={<PaymentPage />} />
+        <Route path="/blog" element={<BlogLayout />} />
         <Route path="/finances" element={<FinanceDashboard />} />
       </Routes>
 

@@ -3900,3 +3900,55 @@ class WardernDatabase:
                 
         except Exception as e:
             return {"error": str(e)}, HTTPStatus.INTERNAL_SERVER_ERROR
+        
+    def create_iot_request(self, data):
+        try:
+            with pyodbc.connect(self.conn_str) as conn:
+                cursor = conn.cursor()
+                
+                insert_query = """
+                INSERT INTO iot_integration_requests 
+                (user_id, farm_size, crop_type, sensor_preference, budget_range, 
+                phone_number, location, preferred_contact_time, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+                """
+                
+                cursor.execute(insert_query, (
+                    data['userId'],
+                    data['farmSize'],
+                    data['cropType'],
+                    data['sensorPreference'],
+                    data['budget'],
+                    data['phoneNumber'],
+                    data['location'],
+                    data['preferredContactTime']
+                ))
+                conn.commit()
+                
+                return {"message": "IoT integration request created successfully"}, HTTPStatus.CREATED
+                
+        except Exception as e:
+            return {"error": str(e)}, HTTPStatus.INTERNAL_SERVER_ERROR
+
+    def get_user_request(self, user_id):
+        try:
+            with pyodbc.connect(self.conn_str) as conn:
+                cursor = conn.cursor()
+                
+                select_query = """
+                SELECT * FROM iot_integration_requests 
+                WHERE user_id = ? 
+                ORDER BY created_at DESC
+                """
+                
+                cursor.execute(select_query, (user_id,))
+                row = cursor.fetchone()
+                
+                if row:
+                    columns = [column[0] for column in cursor.description]
+                    request_data = dict(zip(columns, row))
+                    return {"data": request_data}, HTTPStatus.OK
+                return {"message": "No request found"}, HTTPStatus.NOT_FOUND
+                
+        except Exception as e:
+            return {"error": str(e)}, HTTPStatus.INTERNAL_SERVER_ERROR
