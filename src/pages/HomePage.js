@@ -1,20 +1,49 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { ChevronRight, Leaf, Cpu, Store, Recycle, Users, TrendingUp, Award, BarChart } from 'lucide-react';
-
+import { useInView } from 'react-intersection-observer';
 import Image1 from '../assets/images/f1.jpg';
 import Image2 from '../assets/images/f2.jpg';
 import Image3 from '../assets/images/f3.jpg';
 import Image4 from '../assets/images/7.png';
 import Image5 from '../assets/images/5.jpg';
 import Image6 from '../assets/images/6.jpg';
+const CountUp = ({ end, duration = 2000 }) => {
+  const [count, setCount] = useState(0);
+  const [ref, inView] = useInView({ triggerOnce: true });
+  
+  useEffect(() => {
+    if (inView) {
+      let start = 0;
+      const increment = end / (duration / 16);
+      const timer = setInterval(() => {
+        start += increment;
+        if (start >= end) {
+          setCount(end);
+          clearInterval(timer);
+        } else {
+          setCount(Math.floor(start));
+        }
+      }, 16);
+      return () => clearInterval(timer);
+    }
+  }, [end, duration, inView]);
+
+  return <span ref={ref}>{typeof end === 'string' && end.includes('+') ? 
+    `${count.toLocaleString()}+` : 
+    count.toLocaleString()}</span>;
+};
 
 const HomePage = () => {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+
   const carouselImages = [
     Image1,
     Image2,
   ];
+
+
 
   const features = [
     { title: 'IoT Integration', description: 'Leverage smart sensors and real-time data for precise farming', icon: Leaf },
@@ -30,13 +59,16 @@ const HomePage = () => {
   ];
 
   const stats = [
-    { title: 'Farmers Onboarded', value: '10,000+', icon: Users },
-    { title: 'Yield Increase', value: '35%', icon: TrendingUp },
-    { title: 'Sustainability Score', value: '92/100', icon: Award },
-    { title: 'Market Reach', value: '5M+', icon: BarChart },
+    { title: 'Farmers Onboarded', value: '10000', suffix: '+', icon: Users },
+    { title: 'Yield Increase', value: '35', suffix: '%', icon: TrendingUp },
+    { title: 'Sustainability Score', value: '92', suffix: '/100', icon: Award },
+    { title: 'Market Reach', value: '5000000', suffix: '+', icon: BarChart },
   ];
 
-  const [currentSlide, setCurrentSlide] = useState(0);
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 1000);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -45,164 +77,141 @@ const HomePage = () => {
     return () => clearInterval(timer);
   }, []);
 
+  const [heroRef, heroInView] = useInView({
+    triggerOnce: true,
+    threshold: 0.1,
+  });
+
+  const [featuresRef, featuresInView] = useInView({
+    triggerOnce: true,
+    threshold: 0.1,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="fixed inset-0 bg-green-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-4 border-b-4 border-green-500"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-green-50">
       <main className="flex-grow">
-        {/* Hero Section with Carousel */}
-        <div className="relative h-[80vh]">
-          {carouselImages.map((img, index) => (
-            <motion.div
-              key={index}
-              className="absolute top-0 left-0 w-full h-full"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: index === currentSlide ? 1 : 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <img src={img} alt={`Farm ${index + 1}`} className="object-cover h-full w-full" />
-              <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                <div className="text-center text-white max-w-4xl px-4">
-                  <motion.h1 
-                    className="text-5xl sm:text-6xl font-bold mb-6"
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.2 }}
-                  >
-                    Cultivating the Future of Agriculture
-                  </motion.h1>
-                  <motion.p 
-                    className="text-xl sm:text-2xl mb-8"
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.4 }}
-                  >
-                    Empowering farmers with cutting-edge technology for sustainable and profitable farming
-                  </motion.p>
-                  <motion.div
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.6 }}
-                  >
-                    <Link to="/my-warden" className="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full text-lg transition duration-300 inline-flex items-center">
+        {/* Hero Section */}
+        <div ref={heroRef} className="relative h-[90vh] overflow-hidden">
+          <div className={`absolute inset-0 transition-transform duration-1000 ${heroInView ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0'}`}>
+            {carouselImages.map((img, index) => (
+              <div
+                key={index}
+                className={`absolute inset-0 transition-opacity duration-1000 ${
+                  index === currentSlide ? 'opacity-100' : 'opacity-0'
+                }`}
+              >
+                <img src={img} alt={`Farm ${index + 1}`} className="object-cover h-full w-full" />
+                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                  <div className="text-center text-white max-w-4xl px-4">
+                    <h1 className="text-6xl md:text-7xl font-bold mb-6 animate-fadeIn">
+                      Cultivating the Future
+                    </h1>
+                    <p className="text-2xl md:text-3xl mb-8 animate-slideUp">
+                      Empowering farmers with cutting-edge technology
+                    </p>
+                    <button className="bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-8 rounded-full text-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg inline-flex items-center">
                       Explore Our Solutions
-                      <ChevronRight className="ml-2 h-5 w-5" />
-                    </Link>
-                  </motion.div>
+                      <ChevronRight className="ml-2 h-6 w-6" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </motion.div>
-          ))}
+            ))}
+          </div>
         </div>
 
-        {/* Vision Section */}
-        <section className="py-20 bg-white">
-          <div className="container mx-auto px-4">
-            <h2 className="text-4xl font-bold text-center mb-16 text-green-800">Our Vision</h2>
-            <div className="flex flex-col md:flex-row items-center justify-between">
-              <div className="md:w-1/2 mb-10 md:mb-0">
-                <img src={Image3} alt="Sustainable Agriculture" className="rounded-lg shadow-xl" />
-              </div>
-              <div className="md:w-1/2 md:pl-10">
-                <h3 className="text-3xl font-semibold mb-6 text-green-700">Growing a Sustainable Future</h3>
-                <p className="text-xl text-gray-600 mb-6">We envision a world where technology bridges the gap between farm and table, fostering sustainability, efficiency, and prosperity across the entire agricultural ecosystem.</p>
-                <ul className="space-y-4">
-                  <li className="flex items-center text-lg text-gray-700">
-                    <ChevronRight className="mr-2 text-green-500" />
-                    Empower farmers with data-driven insights
-                  </li>
-                  <li className="flex items-center text-lg text-gray-700">
-                    <ChevronRight className="mr-2 text-green-500" />
-                    Enhance food security through smart resource management
-                  </li>
-                  <li className="flex items-center text-lg text-gray-700">
-                    <ChevronRight className="mr-2 text-green-500" />
-                    Create transparent and efficient supply chains
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* Features Section */}
-        <section id="features" className="py-20 bg-green-100">
+        <section ref={featuresRef} className="py-24 bg-white">
           <div className="container mx-auto px-4">
-            <h2 className="text-4xl font-bold text-center mb-16 text-green-800">Our Innovative Features</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+            <h2 className="text-5xl font-bold text-center mb-20 text-green-800">
+              Our Innovative Features
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
               {features.map((feature, index) => (
-                <motion.div
+                <div
                   key={index}
-                  className="bg-white p-8 rounded-xl shadow-lg transition-all duration-300 hover:shadow-2xl"
-                  initial={{ y: 50, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: index * 0.1 }}
+                  className={`bg-white p-8 rounded-xl shadow-lg transition-all duration-500 hover:shadow-2xl transform hover:-translate-y-2 ${
+                    featuresInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+                  }`}
+                  style={{ transitionDelay: `${index * 200}ms` }}
                 >
-                  <feature.icon className="w-12 h-12 text-green-500 mb-6" />
+                  <feature.icon className="w-16 h-16 text-green-500 mb-6" />
                   <h3 className="text-2xl font-semibold mb-4 text-green-700">{feature.title}</h3>
-                  <p className="text-gray-600">{feature.description}</p>
-                </motion.div>
+                  <p className="text-gray-600 text-lg">{feature.description}</p>
+                </div>
               ))}
             </div>
           </div>
         </section>
 
         {/* Stats Section */}
-        <section className="py-20 bg-green-600 text-white">
+        <section className="py-24 bg-green-600 text-white relative overflow-hidden">
           <div className="container mx-auto px-4">
-            <h2 className="text-4xl font-bold text-center mb-16">Our Impact in Numbers</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+            <h2 className="text-5xl font-bold text-center mb-20">Our Impact</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
               {stats.map((stat, index) => (
-                <motion.div
+                <div
                   key={index}
-                  className="text-center"
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: index * 0.1 }}
+                  className="text-center transform transition-all duration-500 hover:scale-105"
                 >
-                  <stat.icon className="w-16 h-16 mx-auto mb-4 text-green-300" />
-                  <h3 className="text-4xl font-bold mb-2">{stat.value}</h3>
-                  <p className="text-xl">{stat.title}</p>
-                </motion.div>
+                  <stat.icon className="w-20 h-20 mx-auto mb-6 text-green-300" />
+                  <h3 className="text-5xl font-bold mb-4">
+                    <CountUp end={parseInt(stat.value)} />
+                    {stat.suffix}
+                  </h3>
+                  <p className="text-2xl text-green-100">{stat.title}</p>
+                </div>
               ))}
             </div>
           </div>
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-green-700 opacity-50"></div>
         </section>
 
         {/* Testimonials Section */}
-        <section className="py-20 bg-white">
+        <section className="py-24 bg-white">
           <div className="container mx-auto px-4">
-            <h2 className="text-4xl font-bold text-center mb-16 text-green-800">What Our Users Say</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+            <h2 className="text-5xl font-bold text-center mb-20 text-green-800">
+              What Our Users Say
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
               {testimonials.map((testimonial, index) => (
-                <motion.div
+                <div
                   key={index}
-                  className="bg-green-50 p-8 rounded-xl shadow-lg h-full flex flex-col"
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: index * 0.2 }}
+                  className="bg-green-50 p-8 rounded-xl shadow-lg transition-all duration-500 hover:shadow-2xl transform hover:-translate-y-2"
                 >
-                  <p className="mb-6 text-lg italic flex-grow text-gray-600">"{testimonial.text}"</p>
-                  <div className="flex items-center">
-                    <img src={testimonial.avatar} alt={testimonial.name} className="w-12 h-12 rounded-full mr-4" />
-                    <div>
-                      <p className="font-semibold text-lg text-green-700">{testimonial.name}</p>
-                      <p className="text-green-600">{testimonial.role}</p>
-                    </div>
+                  <div className="mb-6">
+                    <img src={testimonial.avatar} alt={testimonial.name} className="w-16 h-16 rounded-full mx-auto mb-4" />
                   </div>
-                </motion.div>
+                  <p className="text-xl italic mb-6 text-gray-600">"{testimonial.text}"</p>
+                  <div className="text-center">
+                    <p className="font-semibold text-xl text-green-700">{testimonial.name}</p>
+                    <p className="text-green-600">{testimonial.role}</p>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
         </section>
 
         {/* CTA Section */}
-        <section className="py-20 bg-green-600 text-white">
+        <section className="py-24 bg-gradient-to-r from-green-600 to-green-700 text-white">
           <div className="container mx-auto px-4 text-center">
-            <h2 className="text-4xl font-bold mb-8">Ready to Transform Your Farm?</h2>
-            <p className="text-xl mb-10 max-w-2xl mx-auto">Join our platform today and experience the future of farming with cutting-edge technology and data-driven insights.</p>
-            <Link to="/signup" className="bg-white text-green-800 hover:bg-green-100 font-bold py-3 px-8 rounded-full text-lg transition duration-300 inline-flex items-center">
+            <h2 className="text-5xl font-bold mb-8">Ready to Transform Your Farm?</h2>
+            <p className="text-2xl mb-12 max-w-3xl mx-auto">
+              Join our platform today and experience the future of farming
+            </p>
+            <button className="bg-white text-green-700 hover:bg-green-50 font-bold py-4 px-10 rounded-full text-xl transition-all duration-300 transform hover:scale-105 hover:shadow-lg inline-flex items-center">
               Get Started Now
-              <ChevronRight className="ml-2 h-5 w-5" />
-            </Link>
+              <ChevronRight className="ml-2 h-6 w-6" />
+            </button>
           </div>
         </section>
       </main>

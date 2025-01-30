@@ -410,3 +410,10 @@ CREATE TABLE iot_integration_requests (
     assigned_to VARCHAR(100),
     estimated_completion_date DATE
 );
+
+CREATE TABLE admin (
+    admin_id INT PRIMARY KEY IDENTITY(1,1),
+    admin_name NVARCHAR(100) NOT NULL,
+    admin_email NVARCHAR(255) NOT NULL,
+    admin_password NVARCHAR(255) NOT NULL
+);
