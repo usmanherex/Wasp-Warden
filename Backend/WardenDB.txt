@@ -417,3 +417,12 @@ CREATE TABLE admin (
     admin_email NVARCHAR(255) NOT NULL,
     admin_password NVARCHAR(255) NOT NULL
 );
+
+
+  CREATE TABLE contact_us (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    Username NVARCHAR(100) NOT NULL,
+    email NVARCHAR(100) NOT NULL,
+    content TEXT NOT NULL,
+    created_at DATETIME DEFAULT GETDATE()
+);

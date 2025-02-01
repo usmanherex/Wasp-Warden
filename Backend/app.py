@@ -2051,5 +2051,36 @@ def create_iot_request():
 def get_user_request(user_id):
     return db.get_user_request(user_id)
 
+@app.route('/api/contact', methods=['POST'])
+def submit_contact():
+    try:
+        data = request.json
+        name = data.get('name')
+        email = data.get('email')
+        content = data.get('content')
+
+        if not all([name, email, content]):
+            return jsonify({
+                'success': False,
+                'message': 'Missing required fields'
+            }), 400
+
+        success, result = db.create_contact_request(name, email, content)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Contact request submitted successfully'
+            })
+        return jsonify({
+            'success': False,
+            'message': str(result)
+        }), 500
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
 if __name__ == '__main__':
     socketio.run(app, debug=True)

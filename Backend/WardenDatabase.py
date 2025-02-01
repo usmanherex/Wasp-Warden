@@ -2828,7 +2828,7 @@ class WardernDatabase:
                     owner_id,
                     user_id,
                     'PAID',
-                    'PENDING',
+                    'Pending',
                     payment_details['name'],
                     payment_details['email'],
                     payment_details['phone'],
@@ -2927,7 +2927,7 @@ class WardernDatabase:
             # Create new cart for user
             new_cart_query = """
                 INSERT INTO carts (userID, cart_status)
-                VALUES (?, 'PENDING')
+                VALUES (?, 'Pending')
             """
             cursor.execute(new_cart_query, (user_id,))
             
@@ -3061,7 +3061,7 @@ class WardernDatabase:
     def get_active_cart_id(self, cursor, user_id):
      query = """
         SELECT cartID FROM carts 
-        WHERE userID = ? AND cart_status = 'PENDING'
+        WHERE userID = ? AND cart_status = 'Pending'
         ORDER BY created_at DESC
      """
      cursor.execute(query, (user_id,))
@@ -3900,7 +3900,24 @@ class WardernDatabase:
                 
         except Exception as e:
             return {"error": str(e)}, HTTPStatus.INTERNAL_SERVER_ERROR
+    def create_contact_request(self, name, email, content):
+     try:
+        with pyodbc.connect(self.conn_str) as conn:
+                
+         query = """
+            INSERT INTO contact_us (Username, email, content)
+            VALUES (?, ?, ?)
+        """
+         params = (name, email, content)
         
+         cursor = conn.cursor()
+         cursor.execute(query, params)
+         conn.commit()
+        
+         return True, "Contact request created successfully"
+        
+     except Exception as e:
+        return False, str(e)    
     def create_iot_request(self, data):
         try:
             with pyodbc.connect(self.conn_str) as conn:
