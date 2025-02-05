@@ -199,7 +199,7 @@ const IoTDashboard = () => {
   return (
     <div className={`min-h-screen p-8 ${darkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'}`}>
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-4xl font-bold">IoT Farm Dashboard</h1>
+        <h1 className="text-4xl text-center font-bold">IoT Farm Dashboard</h1>
         <button
           onClick={() => setDarkMode(!darkMode)}
           className={`p-3 rounded-full transition-all duration-300 ${darkMode ? 'bg-yellow-500 hover:bg-yellow-400' : 'bg-gray-800 hover:bg-gray-700'}`}

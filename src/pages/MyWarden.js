@@ -41,7 +41,7 @@ const MyWarden = () => {
   return (
     <div className="bg-gradient-to-br from-green-50 to-blue-50 min-h-screen p-4 sm:p-6 md:p-8">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-4xl sm:text-5xl font-bold text-center mb-3 text-green-800">My Warden</h1>
+        <h1 className="text-4xl  font-bold text-center mb-4 text-black-800">My Warden</h1>
         <p className="text-center text-gray-600 mb-8 max-w-3xl mx-auto text-base sm:text-lg">
           Harness the power of AI to protect your crops. Select a detection feature below to safeguard your harvest and maximize yield.
         </p>

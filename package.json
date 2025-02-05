@@ -40,11 +40,15 @@
 
     "framer-motion": "^11.11.1",
 
+    "fs": "^0.0.1-security",
+
     "io": "^1.5.3",
 
     "jwt-decode": "^4.0.0",
 
     "lucide-react": "^0.447.0",
+
+    "path": "^0.12.7",
 
     "react": "^18.3.1",
 
@@ -68,7 +72,9 @@
 
     "sweetalert2": "^11.15.10",
 
-    "web-vitals": "^2.1.4"
+    "web-vitals": "^2.1.4",
+
+    "xlsx-js-style": "^1.2.0"
 
   },
 

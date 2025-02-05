@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar/Navbar';
 import Footer from './components/Footer/Footer';
@@ -45,6 +45,23 @@ import FAQSection from './pages/FAQ';
 import IoTIntegrationPage from './pages/IoTIntegration';
 import BlogLayout from './pages/Blog';
 import Article from './pages/Article';
+import ReturnPolicy from './pages/Return-Policy';
+import ShippingPolicy from './pages/ShippingPolicy';
+import CookiePolicy from './pages/Cookie-policy';
+import Disclaimer from './pages/Disclaimer';
+import IntellectualPropertyPolicy from './pages/IntellectualPropertyPolicy';
+
+
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+  
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  
+  return null;
+};
+
 
 const AppContent = () => {
   const location = useLocation();
@@ -54,10 +71,11 @@ const AppContent = () => {
 const showNavbar = !['/login', '/signup','/forgot-password', '/reset-password'].includes(pathname) && !/^\/reset-password\/[^/]+$/.test(pathname);
 
   // Pages that should show footer
-  const showFooter = ['/', '/home', '/contact','/mart','/marketplace'].includes(location.pathname);
+  const showFooter = ['/', '/home', '/contact','/mart','/marketplace','/my-warden','/farmer-dashboard','/agribusiness-dashboard','/consumer-dashboard','/finances','/privacy-policy','/about-us','/return-policy','/faq','/terms-conditions','/shipping-delivery-policy','/cookie-policy','/disclaimer','/intellectual-property-policy'].includes(location.pathname);
 
   return (
     <div>
+        <ScrollToTop />
        <ToastContainer
         position="bottom-center"
         autoClose={5000}
@@ -75,9 +93,14 @@ const showNavbar = !['/login', '/signup','/forgot-password', '/reset-password'].
       
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/shipping-delivery-policy" element={<ShippingPolicy/>} />
+        <Route path="/intellectual-property-policy" element={<IntellectualPropertyPolicy/>} />
+        <Route path="/disclaimer" element={<Disclaimer/>} />
+        <Route path="/cookie-policy" element={<CookiePolicy/>} />
         <Route path="/about-us" element={<AboutUs />} />
         <Route path="/terms-conditions" element={<TermsAndConditions />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/return-policy" element={<ReturnPolicy />} />
         <Route path="/faq" element={<FAQSection />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />

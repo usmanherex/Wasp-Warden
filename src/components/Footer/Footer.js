@@ -6,31 +6,33 @@ import Image from '../../assets/images/warden.png'
 
 export default () => {
   const footerNavs = [
-    {
-      label: 'Our Farm',
-      items: [
-        { name: 'About Us', href: '/about-us' },
-        { name: 'Terms & Conditions', href: '/terms-conditions' },
-        { name: 'Sustainability', href: '/sustainability' },
-        { name: 'Farm Tours', href: '/tours' },
-      ],
-    },
+
     {
       label: 'Resources',
       items: [
-        { name: 'Farm Blog', href: '/blog' },
-        { name: 'Pest Control Guide', href: '/guide' },
-        { name: 'FAQ', href: '/faq' },
-        { name: 'Blog', href: '/blog' },
+   
+        { name: 'Refund & Returns Policy', href: '/return-policy' },
+        { name: 'Privacy Policy', href: '/privacy-policy' },
+        { name: 'Terms & Conditions', href: '/terms-conditions' }
       ],
     },
     {
       label: 'Customer Care',
       items: [
         { name: 'Contact Us', href: '/contact' },
-        { name: 'Shipping Info', href: '/shipping' },
-        { name: 'Returns Policy', href: '/returns' },
-        { name: 'Privacy Policy', href: '/privacy-policy' },
+        { name: 'FAQ', href: '/faq' },
+        { name: 'About Us', href: '/about-us' }
+    
+      ],
+    },
+    {
+      label: 'Legal & Policy',
+      items: [
+        { name: 'Shipping & Delivery Policy', href: '/shipping-delivery-policy' },
+       
+        { name: 'Cookie Policy', href: '/cookie-policy' },
+        { name: 'Disclaimer', href: '/disclaimer' },
+        { name: 'Intellectual Property', href: '/intellectual-property-policy' }
       ],
     },
   ];

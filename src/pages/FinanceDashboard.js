@@ -1,8 +1,14 @@
+
+import { utils, writeFile } from 'xlsx-js-style';
+import axios from 'axios';
+
 import React, { useState, useEffect } from 'react';
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card2";
+
 import { Loader2, Sprout, TreePine, Leaf, TrendingUp, AlertTriangle, Table as TableIcon, TreesIcon as Plant, Calendar, Filter, Download } from 'lucide-react';
 
+import companyLogo from '../assets/images/logo.png'; // Assuming you have a logo image
 const COLORS = ['#4ade80', '#2dd4bf', '#60a5fa', '#f472b6'];
 const CHART_GREEN = '#22c55e';
 
@@ -46,6 +52,24 @@ const FinanceDashboard = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [filteredFinances, setFilteredFinances] = useState([]);
   const ownerId = getUserId();
+  const [userInfo, setUserInfo] = useState(null);
+  const user = JSON.parse(localStorage.getItem("user"));
+  const userId = user.userId;
+  const fetchUserProfile = async () => {
+    try {
+      // Replace with actual user ID
+
+      const response = await axios.get(
+        `http://localhost:5000/user-profile/${userId}`
+      );
+      setUserInfo(response.data);
+      setError(null);
+    } catch (err) {
+      setError(err.response?.data?.error || "Failed to fetch user profile");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchFilteredData = async () => {
     if (!ownerId) return;
@@ -107,6 +131,7 @@ const FinanceDashboard = () => {
     };
 
     fetchData();
+    fetchUserProfile();
   }, [ownerId]);
 
   useEffect(() => {
@@ -130,7 +155,8 @@ const FinanceDashboard = () => {
       </div>
     );
   }
-
+  
+  
   const { basic_stats, monthly_data, status_distribution, pending_orders } = data;
   const pendingOrdersCount = pending_orders?.length || 0;
   const renderTransactionsTable = () => (
@@ -212,25 +238,267 @@ const FinanceDashboard = () => {
     </button>
   );
 
-  const exportToCSV = () => {
-    const headers = ['Transaction ID', 'Order ID', 'Date', 'Amount', 'Status'];
-    const csvData = filteredFinances.map(f => 
-      [f.financeID, f.orderID, new Date(f.timestamp).toLocaleDateString(), f.totalAmount, f.status]
-    );
-    
-    const csvContent = [headers, ...csvData]
-      .map(row => row.join(','))
-      .join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'transactions.csv';
-    a.click();
-    window.URL.revokeObjectURL(url);
-  };
 
+  const exportToExcel = async () => {
+    // Create workbook and worksheet
+    const wb = utils.book_new();
+    
+    try {
+      const logoResponse = await fetch('/static/media/ward.5ea9d96849327e771460.png');
+   
+      const logoBlob = await logoResponse.blob();
+      const logoBase64 = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(logoBlob);
+      });
+     
+      // Create the drawing object for the logo
+      const drawing = {
+        type: 'picture',
+        position: {
+          type: 'twoCellAnchor',
+          from: {
+            col: 0,
+            colOff: 0,
+            row: 0,
+            rowOff: 0
+          },
+          to: {
+            col: 2,
+            colOff: 0,
+            row: 2,
+            rowOff: 0
+          }
+        },
+        data: {
+          base64: logoBase64
+        }
+      };
+  
+      // Initialize worksheet with initial data
+      const initialData = [
+        [''], // Row 1: Logo space
+        ['Wasp Warden - Transaction Report'], // Row 2: Title
+        [''], // Row 3: Spacing
+      ];
+  
+      const ws = utils.aoa_to_sheet(initialData);
+  
+      // Add drawing to worksheet
+      if (!ws.drawings) ws.drawings = [];
+      ws.drawings.push(drawing);
+      
+      // Convert your data to array format
+      const headers = ['Transaction ID', 'Order ID', 'Date', 'Amount', 'Status'];
+      const data = filteredFinances.map(f => [
+        f.financeID,
+        f.orderID,
+        new Date(f.timestamp).toLocaleDateString(),
+        f.totalAmount,
+        f.status
+      ]);
+  
+      // Add headers and data
+      utils.sheet_add_aoa(ws, [
+        headers,
+        ...data
+      ], { origin: 'A4' }); // Start from row 4
+  
+      // Add additional information after the table
+      const lastDataRow = data.length + 4; // Calculate the row after the last data row
+      const additionalInfo = [
+        [''], // Empty row for spacing
+        ['Report Information:'],
+        ['Farmer Name:', `${userInfo.firstName} ${userInfo.lastName}`], // Replace farmerName with actual variable
+        ['Farmer Email:', userInfo.email], // Replace farmerEmail with actual variable
+        ['Report Generation Date:', new Date().toLocaleDateString()],
+        ['Wasp Warden Email:', 'waspwardenproject@gmail.com'] // Replace with actual email
+      ];
+  
+      utils.sheet_add_aoa(ws, additionalInfo, {
+        origin: `A${lastDataRow + 2}`,
+        cellStyles: true // Enable cell styles
+      });
+      additionalInfo.forEach((row, rowIndex) => {
+        const currentRow = lastDataRow + 1 + rowIndex;
+        
+        // Skip empty rows
+        if (!row[0]) return;
+  
+        // Get cell references
+        const labelCell = utils.encode_cell({ r: currentRow, c: 0 });
+        const valueCell = utils.encode_cell({ r: currentRow, c: 1 });
+  
+        // Create cell if it doesn't exist
+        if (!ws[labelCell]) {
+          ws[labelCell] = { v: row[0], t: 's' };
+        }
+        if (!ws[valueCell] && row[1]) {
+          ws[valueCell] = { v: row[1], t: 's' };
+        }
+  
+        // Apply styles based on content
+        if (row[0] === 'Report Information:') {
+          ws[labelCell].s = {
+            font: {
+              name: 'Arial',
+              sz: 14,
+          bold: true,
+          color: { rgb: '006400' }
+            }
+          };
+        } else {
+          // Style for regular labels
+          ws[labelCell].s = {
+            font: {
+              name: 'Arial',
+              sz: 11,
+              bold: true
+            }
+          };
+          
+          // Style for values if they exist
+          if (row[1] && ws[valueCell]) {
+            ws[valueCell].s = {
+              font: {
+                name: 'Arial',
+                sz: 11
+              }
+            };
+          }
+        }
+      });
+  
+      // Set column widths
+      const columnWidths = [
+        { wch: 25 }, // Transaction ID
+        { wch: 22 }, // Order ID
+        { wch: 22 }, // Date
+        { wch: 20 }, // Amount
+        { wch: 20 }, // Status
+      ];
+      ws['!cols'] = columnWidths;
+  
+      if (!ws['A2']) {
+        ws['A2'] = { v: 'Wasp Warden - Transaction Report', t: 's' };
+      }
+      ws['A2'].s = {
+        font: {
+          name: 'Arial',
+          sz: 16,
+          bold: true,
+          color: { rgb: '006400' }
+        },
+        alignment: { horizontal: 'center' }
+      };
+  
+      // Merge cells for title
+      ws['!merges'] = [
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 4 } }
+      ];
+  
+      // Style headers
+      const headerStyle = {
+        font: {
+          name: 'Arial',
+          sz: 12,
+          bold: true,
+          color: { rgb: 'FFFFFF' }
+        },
+        fill: {
+          fgColor: { rgb: '228B22' }
+        },
+        alignment: {
+          horizontal: 'center',
+          vertical: 'center'
+        },
+        border: {
+          top: { style: 'thin', color: { rgb: '000000' } },
+          bottom: { style: 'thin', color: { rgb: '000000' } },
+          left: { style: 'thin', color: { rgb: '000000' } },
+          right: { style: 'thin', color: { rgb: '000000' } }
+        }
+      };
+  
+      // Apply header styles
+      headers.forEach((_, index) => {
+        const cellRef = utils.encode_cell({ r: 3, c: index });
+        if (!ws[cellRef]) {
+          ws[cellRef] = { v: headers[index], t: 's' };
+        }
+        ws[cellRef].s = headerStyle;
+      });
+  
+      // Style data cells and add alternating row colors
+      data.forEach((row, rowIndex) => {
+        row.forEach((cell, colIndex) => {
+          const cellRef = utils.encode_cell({ r: rowIndex + 4, c: colIndex });
+          
+          // Ensure cell exists
+          if (!ws[cellRef]) {
+            ws[cellRef] = { v: cell, t: 's' };
+          }
+  
+          ws[cellRef].s = {
+            font: {
+              name: 'Arial',
+              sz: 11,
+              color: { rgb: '000000' }
+            },
+            alignment: {
+              horizontal: colIndex === 3 ? 'right' : 'left',
+              vertical: 'center'
+            },
+            border: {
+              top: { style: 'thin', color: { rgb: 'E0E0E0' } },
+              bottom: { style: 'thin', color: { rgb: 'E0E0E0' } },
+              left: { style: 'thin', color: { rgb: 'E0E0E0' } },
+              right: { style: 'thin', color: { rgb: 'E0E0E0' } }
+            }
+          };
+  
+          // Add alternating row colors
+          if (rowIndex % 2 === 1) {
+            ws[cellRef].s.fill = {
+              fgColor: { rgb: 'F5F5F5' }
+            };
+          }
+  
+          // Special formatting for status column
+          if (colIndex === 4) {
+            ws[cellRef].s.font.color = { rgb: getStatusColor(cell) };
+            ws[cellRef].s.alignment.horizontal = 'center';
+          }
+  
+          // Currency formatting for amount column
+          if (colIndex === 3) {
+            ws[cellRef].z = '$#,##0.00';
+          }
+        });
+      });
+  
+      // Add the worksheet to workbook
+      utils.book_append_sheet(wb, ws, 'Transactions');
+  
+      // Generate Excel file
+      const dateStr = new Date().toISOString().slice(0, 10);
+      writeFile(wb, `wasp-warden-transactions-${dateStr}.xlsx`);
+      
+    } catch (error) {
+      console.error('Error generating Excel file:', error);
+    }
+  };
+  
+  // Helper function to determine status colors
+  const getStatusColor = (status) => {
+    const colors = {
+      'completed': '4CAF50', // Green
+      'pending': 'FFA726',   // Orange
+      'failed': 'F44336'     // Red
+    };
+    return colors[status.toLowerCase()] || '757575';
+  };
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-blue-50 p-8">
          {/* Header Section */}
@@ -266,7 +534,7 @@ const FinanceDashboard = () => {
               <span>Filters</span>
             </button>
             <button
-              onClick={exportToCSV}
+              onClick={exportToExcel}
               className="flex items-center space-x-2 px-4 py-2 bg-white/80 text-green-700 rounded-lg hover:bg-green-50"
             >
               <Download className="h-4 w-4" />

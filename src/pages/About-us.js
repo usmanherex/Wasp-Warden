@@ -132,7 +132,7 @@ const AboutUs = () => {
       </div>
 
       {/* Global Impact Section */}
-      <div className="py-16 bg-green-900 text-white">
+      <div className="py-16 bg-green-600 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="md:w-1/2 mb-8 md:mb-0">

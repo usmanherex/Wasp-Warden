@@ -142,7 +142,7 @@ const PrivacyPolicy = () => {
 
           <div className="mt-8 p-4 bg-green-50 rounded-lg">
             <p className="text-sm text-gray-600 text-center">
-              For questions about our privacy practices or to exercise your data rights, please contact our Data Protection Officer at privacy@agritech.example.com
+              For questions about our privacy practices or to exercise your data rights, please contact our Data Protection Officer at waspwardenproject@gmail.com
             </p>
           </div>
         </div>
