@@ -31,12 +31,16 @@ const BlogLayout = () => {
       <header className="py-12 px-6">
         <div className="container mx-auto">
           <div className="relative text-center">  
-            <h1 className="text-4xl font-bold mb-4 text-green-700">The Hive</h1>
+            <h1 className="text-4xl font-bold mb-4 text-black-700">Blogs</h1>
+            <p className="text-center text-gray-600 mb-12">
+            Explore our latest blogs written by our experienced and knowledgeable writers!
+        </p>
           </div>
         </div>
-      </header>
 
-      <div className="container mx-auto px-6 py-16">
+      </header>
+      
+      <div className="container mx-auto px-6 ">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
           {posts.map((post) => (
             <article 

@@ -11,9 +11,11 @@ import {
   TrendingUp,
   DollarSign,
   User,
-  AlertTriangle
+  AlertTriangle,
+  Notebook
 } from 'lucide-react';
 import { Card } from '../components/ui/Card2';
+import DashboardBlogLayout from './DashboardBlogs';
 
 
 const Dashboard = () => {
@@ -222,11 +224,29 @@ const Dashboard = () => {
             </div>
           </Card>
         </Link>
-  
+        
+        <Link to="/blog">
+          <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer bg-white border-green-500 border-l-4">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-green-100 rounded-full">
+                <Notebook className="h-6 w-6 text-green-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg text-gray-900">Explore Our Blogs</h3>
+                <p className="text-sm text-gray-500">Dive into insightful articles, tips, and stories to stay informed and inspired.</p>
+              </div>
+            </div>
+          </Card>  
+          </Link>  
        
+     
+    
+       
+      
       </div>
 
-      {/* Recent Activity */}
+<DashboardBlogLayout></DashboardBlogLayout>
+{/* Recent Activity */}
     
     </div>
   );

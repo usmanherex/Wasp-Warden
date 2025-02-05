@@ -139,6 +139,7 @@ const showNavbar = !['/login', '/signup','/forgot-password', '/reset-password'].
         <Route path="/consumer-negotiations" element={<ConsumerNegotiationsPage />} />
         <Route path="/stripe-payment" element={<PaymentPage />} />
         <Route path="/blog" element={<BlogLayout />} />
+       
         <Route path="/finances" element={<FinanceDashboard />} />
         <Route path="/blog/:id"  element={<Article/>} />
        

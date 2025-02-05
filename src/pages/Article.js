@@ -39,10 +39,10 @@ const Article = () => {
       {/* Back Button */}
       <div className="container mx-auto px-4 mb-8">
         <button 
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/blog')}
           className="text-gray-600 hover:text-gray-900 transition-colors duration-200"
         >
-          ← Back to Articles
+          ← Back to Blogs
         </button>
       </div>
       
