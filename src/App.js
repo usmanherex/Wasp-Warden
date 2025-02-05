@@ -140,7 +140,8 @@ const showNavbar = !['/login', '/signup','/forgot-password', '/reset-password'].
         <Route path="/stripe-payment" element={<PaymentPage />} />
         <Route path="/blog" element={<BlogLayout />} />
         <Route path="/finances" element={<FinanceDashboard />} />
-        <Route path="/article" element={<Article/>} />
+        <Route path="/blog/:id"  element={<Article/>} />
+       
       </Routes>
 
       {showFooter && <Footer />}

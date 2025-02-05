@@ -1,5 +1,6 @@
 import base64
 from http import HTTPStatus
+from io import BytesIO
 import json
 import os
 import secrets
@@ -2082,5 +2083,27 @@ def submit_contact():
             'success': False,
             'message': str(e)
         }), 500
+@app.route('/api/blogs', methods=['GET'])
+def get_blogs():
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 9, type=int)
+    return jsonify(db.get_all_blogs(page, per_page))
+
+@app.route('/api/blogs/<int:blog_id>', methods=['GET'])
+def get_blog(blog_id):
+    blog = db.get_blog_by_id(blog_id)
+    if blog:
+        return jsonify(blog)
+    return jsonify({'error': 'Blog not found'}), 404
+
+@app.route('/api/blogs/<int:blog_id>/image', methods=['GET'])
+def get_image(blog_id):
+    image_data = db.get_blog_image(blog_id)
+    if image_data:
+        return send_file(
+            BytesIO(image_data),
+            mimetype='image/jpeg'
+        )
+    return jsonify({'error': 'Image not found'}), 404
 if __name__ == '__main__':
     socketio.run(app, debug=True)

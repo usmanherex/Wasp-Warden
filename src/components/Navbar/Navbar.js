@@ -123,6 +123,7 @@ const Navbar = () => {
   ];
   const publicNavigation = [
     { title: "Home", path: "/home" },
+    { title: "Blogs", path: "/blog" },
     { title: "Contact Us", path: "/contact" },
     { title: "About Us", path: "/about-us" },
   ];

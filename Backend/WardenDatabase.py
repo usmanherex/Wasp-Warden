@@ -3969,3 +3969,86 @@ class WardernDatabase:
                 
         except Exception as e:
             return {"error": str(e)}, HTTPStatus.INTERNAL_SERVER_ERROR
+    def get_all_blogs(self, page=1, per_page=9):
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            # Calculate offset
+            offset = (page - 1) * per_page
+            
+            # Get total count
+            cursor.execute("SELECT COUNT(*) FROM blog_articles")
+            total_count = cursor.fetchone()[0]
+            
+            # Get paginated blogs
+            cursor.execute("""
+                SELECT blog_id, blog_title, blog_date, blog_author, blog_tag
+                FROM blog_articles
+                ORDER BY blog_date DESC
+                OFFSET ? ROWS
+                FETCH NEXT ? ROWS ONLY
+            """, (offset, per_page))
+            
+            blogs = []
+            for row in cursor.fetchall():
+                blogs.append({
+                    'id': row[0],
+                    'title': row[1],
+                    'date': row[2].strftime('%B %d, %Y'),
+                    'author': row[3],
+                    'category': row[4]
+                })
+            
+            return {
+                'blogs': blogs,
+                'total_pages': -(-total_count // per_page)  # Ceiling division
+            }
+            
+        finally:
+            cursor.close()
+            conn.close()
+
+    def get_blog_by_id(self, blog_id):
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute("""
+                SELECT blog_id, blog_title, blog_date, blog_author, blog_image,
+                       blog_tag, blog_highlight_box, blog_quote, blog_content
+                FROM blog_articles
+                WHERE blog_id = ?
+            """, (blog_id,))
+            
+            blog = cursor.fetchone()
+            if blog:
+                return {
+                    'id': blog[0],
+                    'title': blog[1],
+                    'date': blog[2].strftime('%B %d, %Y'),
+                    'author': blog[3],
+                    'hasImage': blog[4] is not None,
+                    'category': blog[5],
+                    'highlightBox': blog[6],
+                    'quote': blog[7],
+                    'content': blog[8]
+                }
+            return None
+            
+        finally:
+            cursor.close()
+            conn.close()
+
+    def get_blog_image(self, blog_id):
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute("SELECT blog_image FROM blog_articles WHERE blog_id = ?", (blog_id,))
+            image_data = cursor.fetchone()
+            return image_data[0] if image_data and image_data[0] else None
+            
+        finally:
+            cursor.close()
+            conn.close()

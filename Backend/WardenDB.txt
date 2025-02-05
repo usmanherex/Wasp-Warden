@@ -426,3 +426,15 @@ CREATE TABLE admin (
     content TEXT NOT NULL,
     created_at DATETIME DEFAULT GETDATE()
 );
+
+CREATE TABLE blog_articles (
+    blog_id INT PRIMARY KEY IDENTITY(1,1),
+    blog_title VARCHAR(255) NOT NULL,
+    blog_date DATE NOT NULL,
+    blog_author VARCHAR(255) NOT NULL,
+    blog_image VARBINARY(MAX) NULL,
+    blog_tag VARCHAR(255),
+    blog_highlight_box TEXT,
+    blog_quote TEXT,
+    blog_content TEXT NOT NULL
+);
